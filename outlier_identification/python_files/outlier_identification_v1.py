@@ -1,6 +1,43 @@
 # https://www.google.com/search?q=i+have+a+time+series+data+that+has+promotions+like+BOGO.+If+i+were+to+identify+outliers+on+both+high+and+low+side+how+do+i+do+that&gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIGCAEQRRhA0gEJMzU1MTJqMGo3qAIAsAIA&sourceid=chrome&ie=UTF-8&fbs=ADc_l-aN0CWEZBOHjofHoaMMDiKpaEWjvZ2Py1XXV8d8KvlI3izfzqgn7395CNCvYdZRuZ5U71YjigLP8fxOdtGNi00AID0tRCZHJ8fgh0HcZOsGj_K3nSeb8S5ovAsHNcxAlbWFsabvN_f67JLYAW48ZvNV06CZBv371fkqFwGNtqaspixefiL07nDsfYksrWsZNxLdEOW-lWrtts9K9tw3he9tfl_l_A&ved=2ahUKEwi6oNvvsfKTAxXCwTgGHTbXJ00Q0NsOegQIAxAA&aep=10&ntc=1&mstk=AUtExfCWI97WMa3QzhHKJgGY4pHZJG50F85ZuAdKieAyDiYNmyA71qG-0sdZuMZ7QZlBslEyYa64U-P-Q6eSwasjqoArFCWqL-3VDba1b9UpLpP-5HjDFtGYgvTn1911QBuG07XsZpuWREElYQBbAaFdaT0d-bi7JnUVwtzDfPFuc0yzcii4jsPmMvWm0Z8y5MZ1-HTR9tHmzP57iakf_DfY3o4DvNClkBMU_wPY78aYaozFPURsHQW5PQQhrY_JNOPtbTaJr1pc4SyxM6Kwc2-gc8QUeMRuSvNRwrj9Bos-kgppUTImflhbkTTHPKw8-lO00EJrLZCmPloNu3tx9rMWdmSu62O8N8fYao5OW6LP56BiFBS1HUBYELA8kADPj5xD_4ttNn38nj0ivCDw9yAP7RglIX6tSphkt5nLpLBBMfu8AnsKmGuYOAuP5-4fpmu0S0wgQCzv3iI&csuir=1&mtid=DNngaeffI7jA4-EPkM_8uAk&udm=50i
 # logic explained below
 
+
+
+# Currently, the code groups all special days (BOGO, Buy2Get2, Black Friday) into one single "Special" bucket. This means it calculates one median lift for everything.
+
+# Since you are using Robust STL, the baseline for a BOGO week is actually computed using the data from the surrounding "normal" weeks, effectively ignoring the BOGO spike itself.
+# Here is the step-by-step logic the algorithm follows:
+# 1. It "Blurs" the Spike
+# When the STL algorithm looks at a BOGO week, it sees a massive value. Because you set robust=True, the algorithm identifies this as an extreme deviation and assigns it a very low weight (close to zero).
+# 2. It Interpolates from Neighbors
+# Instead of letting that high BOGO number pull the baseline up, the algorithm looks at the weeks before and after the promotion. It "bridges" the gap between them to estimate what the sales would have been if the promotion hadn't happened.
+# The Trend: Is calculated by looking at the long-term direction of the surrounding months.
+# The Seasonality: Is calculated by looking at what happened in that same week (e.g., Week 20) in previous years.
+# 3. The Resulting Baseline
+# The baseline (trend + seasonal) for that BOGO week ends up representing your organic demand.
+# 4. How the "Promo Logic" then applies
+# In the function we wrote, we don't just use that organic baseline to find outliers. We do this:
+# Step A: Calculate the Residual (Actual BOGO Sales minus the Organic Baseline).
+# Step B: Group all those "BOGO Residuals" together and find their Median. This Median is the "Expected Promo Lift."
+# Step C: Your Final Promo Limit = Organic Baseline + Median Promo Lift ± Threshold.
+# In short: The baseline is computed by ignoring the promotion, but the outlier limit is then adjusted upward by the typical lift seen in other promotions.
+# Does that clarify why the baseline stays low even when sales are high?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import pandas as pd
 import numpy as np
 import os
@@ -84,42 +121,42 @@ df_final.to_csv('outlier_identification/df_final.csv', index=False)
 # For this example, let's assume 'df' is already loaded and merged with flags
 # df['is_special'] = (df['is_event'] == 1) | (df['is_promo'] == 1)
 
-def detect_time_series_outliers(df, target_col='sales', period=52):
-    """
-    Identifies outliers by decomposing seasonality and checking 
-    residuals in two separate buckets (Normal vs Special Days).
-    """
+# def detect_time_series_outliers(df, target_col='sales', period=52):
+#     """
+#     Identifies outliers by decomposing seasonality and checking 
+#     residuals in two separate buckets (Normal vs Special Days).
+#     """
     
-    # 2. Robust STL Decomposition (Removes Trend & 52-week Seasonality)
-    # robust=True ensures spikes don't bleed into the trend line
-    stl = STL(df[target_col], period=period, robust=True)
-    result = stl.fit()
-    df['resid'] = result.resid
+#     # 2. Robust STL Decomposition (Removes Trend & 52-week Seasonality)
+#     # robust=True ensures spikes don't bleed into the trend line
+#     stl = STL(df[target_col], period=period, robust=True)
+#     result = stl.fit()
+#     df['resid'] = result.resid
 
-    # 3. Define the Outlier Detection Logic (Modified Z-Score/MAD)
-    def get_thresholds(series):
-        # Using Median Absolute Deviation (MAD) for high robustness
-        median = series.median()
-        mad = (series - median).abs().median()
-        # 1.4826 makes MAD comparable to Standard Deviation
-        lower = median - 3 * (1.4826 * mad)
-        upper = median + 3 * (1.4826 * mad)
-        return lower, upper
+#     # 3. Define the Outlier Detection Logic (Modified Z-Score/MAD)
+#     def get_thresholds(series):
+#         # Using Median Absolute Deviation (MAD) for high robustness
+#         median = series.median()
+#         mad = (series - median).abs().median()
+#         # 1.4826 makes MAD comparable to Standard Deviation
+#         lower = median - 3 * (1.4826 * mad)
+#         upper = median + 3 * (1.4826 * mad)
+#         return lower, upper
 
-    # 4. Apply thresholds separately to avoid bucket contamination
-    df['is_outlier'] = False
+#     # 4. Apply thresholds separately to avoid bucket contamination
+#     df['is_outlier'] = False
     
-    for is_special_day in [True, False]:
-        mask = (df['is_special'] == is_special_day)
-        if mask.any():
-            subset_resid = df.loc[mask, 'resid']
-            lower, upper = get_thresholds(subset_resid)
+#     for is_special_day in [True, False]:
+#         mask = (df['is_special'] == is_special_day)
+#         if mask.any():
+#             subset_resid = df.loc[mask, 'resid']
+#             lower, upper = get_thresholds(subset_resid)
             
-            # Flag both High-side and Low-side
-            outlier_mask = (df['resid'] < lower) | (df['resid'] > upper)
-            df.loc[mask & outlier_mask, 'is_outlier'] = True
+#             # Flag both High-side and Low-side
+#             outlier_mask = (df['resid'] < lower) | (df['resid'] > upper)
+#             df.loc[mask & outlier_mask, 'is_outlier'] = True
             
-    return df
+#     return df
 
 
 
