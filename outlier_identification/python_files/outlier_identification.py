@@ -316,7 +316,7 @@ plot_outlier_results(df_final[df_final['series_id'] == 'Product_002'], 'Product_
 
 
 
-
+# Currently, the code groups all special days (BOGO, Buy2Get2, Black Friday) into one single "Special" bucket. This means it calculates one median lift for everything.
 
 # Since you are using Robust STL, the baseline for a BOGO week is actually computed using the data from the surrounding "normal" weeks, effectively ignoring the BOGO spike itself.
 # Here is the step-by-step logic the algorithm follows:
