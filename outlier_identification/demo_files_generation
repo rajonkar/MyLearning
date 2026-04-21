@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import os
 
+# cmd_shift_+p in mac to select the pythin interpereter. Select the venv
 # Set the new working directory
 os.chdir('/Users/rajonkar/Documents/MyLearning/')
 
