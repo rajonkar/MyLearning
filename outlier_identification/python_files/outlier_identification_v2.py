@@ -191,6 +191,59 @@ print(performance_report)
 
 
 
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+
+def plot_outlier_results(df, series_id):
+    # Filter for the specific series
+    df_plot = df[df['series_id'] == series_id].copy().sort_values('week_start')
+    
+    plt.figure(figsize=(15, 7))
+    
+    # 1. Plot Actual Sales and Organic Baseline
+    plt.plot(df_plot['week_start'], df_plot['sales'], color='gray', alpha=0.3, label='Actual Sales', linewidth=1)
+    plt.plot(df_plot['week_start'], df_plot['baseline'], color='blue', linestyle='--', alpha=0.5, label='Organic Baseline')
+
+    # 2. Plot Dynamic Upper and Lower Limits (the "Shelves")
+    # .step(where='mid') makes the boundary lines jump exactly at the week change
+    plt.step(df_plot['week_start'], df_plot['upper_limit'], color='red', alpha=0.4, label='Upper Bound', where='mid')
+    plt.step(df_plot['week_start'], df_plot['lower_limit'], color='orange', alpha=0.4, label='Lower Bound', where='mid')
+
+    # 3. Highlight Detected Outliers (Red X)
+    outliers = df_plot[df_plot['is_outlier'] == True]
+    plt.scatter(outliers['week_start'], outliers['sales'], 
+                marker='x', color='red', s=120, label='Detected Outliers', zorder=10)
+
+    # 4. Color-code the Background by Promo Type
+    # This helps visualize which "bucket" the week belongs to
+    unique_promos = [p for p in df_plot['promo_type'].unique() if p != 'Normal']
+    cmap = cm.get_cmap('tab10', len(unique_promos))
+    
+    for i, p_type in enumerate(unique_promos):
+        promo_weeks = df_plot[df_plot['promo_type'] == p_type]
+        for start_date in promo_weeks['week_start']:
+            plt.axvspan(start_date, start_date + pd.Timedelta(days=6), 
+                        color=cmap(i), alpha=0.1, label=f'Event: {p_type}' if start_date == promo_weeks['week_start'].iloc[0] else "")
+
+    plt.title(f'Granular Outlier Detection: {series_id}', fontsize=15)
+    plt.xlabel('Week Start Date')
+    plt.ylabel('Sales Volume')
+    
+    # Place legend outside to avoid clutter
+    plt.legend(loc='upper left', bbox_to_anchor=(1, 1), frameon=True)
+    plt.grid(True, linestyle=':', alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+
+
+plot_outlier_results(df_final[df_final['series_id'] == 'Product_001'], 'Product_001')
+
+
+
+
+
+
+#--------------- ALL IN ONE -----------
 
 # Here is the complete, production-ready script. 
 # It loops through all 100 series, applies the granular detection logic, and outputs a summary of every outlier 
