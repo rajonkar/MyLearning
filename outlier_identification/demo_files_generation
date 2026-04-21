@@ -1,0 +1,73 @@
+
+import pandas as pd
+import numpy as np
+import os
+
+# Set the new working directory
+os.chdir('/Users/rajonkar/Documents/MyLearning/outlier_identification')
+
+# Verify the change
+print(os.getcwd())
+
+def generate_retail_sample(num_series=100, weeks=105):
+    # Create a date range starting from a Monday
+    dates = pd.date_range(start='2023-01-02', periods=weeks, freq='W-MON')
+    
+    # 1. Create Sales Data
+    all_series = []
+    for i in range(num_series):
+        sid = f'Product_{i+1:03d}'
+        
+        # Base components: Trend + Yearly Seasonality
+        trend = np.linspace(100 + np.random.randint(-20, 20), 150, weeks)
+        seasonality = 25 * np.sin(2 * np.pi * np.arange(weeks) / 52)
+        noise = np.random.normal(0, 4, weeks)
+        
+        sales = trend + seasonality + noise
+        
+        # Inject "Expected" Spikes (Black Friday - Week 47ish)
+        sales[46:48] *= 4.0
+        sales[46+52:48+52] *= 4.0
+        
+        # Inject BOGO "Expected" Spikes (Week 20 & 70)
+        sales[20] *= 2.0
+        sales[70] *= 2.1
+        
+        # Inject HIDDEN OUTLIERS to be detected
+        # High-side: Unexpected viral peak (No promo)
+        sales[85] += 600 
+        # Low-side: Supply chain stockout (No promo)
+        sales[30] = sales[30] * 0.05 
+        
+        temp_df = pd.DataFrame({'week_start': dates, 'sales': sales.clip(min=0)})
+        temp_df['series_id'] = sid
+        all_series.append(temp_df)
+    
+    sales_df = pd.concat(all_series).reset_index(drop=True)
+    
+    # 2. Create Events File (Black Friday always shifts)
+    events_df = pd.DataFrame([
+        {'event': 'Black Friday', 'event_date': '2023-11-24'},
+        {'event': 'Black Friday', 'event_date': '2024-11-29'},
+        {'event': 'Memorial Day', 'event_date': '2023-05-29'},
+        {'event': 'Memorial Day', 'event_date': '2024-05-27'}
+    ])
+    
+    # 3. Create Promos File
+    promos_df = pd.DataFrame([
+        {'type': 'BOGO', 'start_date': '2023-05-20', 'end_date': '2023-05-25'},
+        {'type': 'BOGO', 'start_date': '2024-05-04', 'end_date': '2024-05-12'},
+        {'type': 'Disc_50', 'start_date': '2024-08-10', 'end_date': '2024-08-15'}
+    ])
+    
+    return sales_df, events_df, promos_df
+
+# Generate the data
+sales_df, events_df, promos_df = generate_retail_sample()
+
+# Save for your notebook
+# sales_df.to_csv('sales.csv', index=False)
+# events_df.to_csv('events.csv', index=False)
+# promos_df.to_csv('promos.csv', index=False)
+
+print(f"Generated {sales_df['series_id'].nunique()} series with {len(sales_df)} total rows.")
