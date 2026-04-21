@@ -75,8 +75,14 @@ df_final.to_csv('outlier_identification/df_final_v2.csv', index=False)
 # 2. Multi-Event Outlier Detection
 # This function calculates separate thresholds for every unique label in your promo_type column.
 
+# The below function segments by Label: It looks at your "Promo" or "Event" column first.
+# It sets a "Local" Bar: It calculates the average/threshold only for those specific rows.
+# It compares apples to apples: It only flags a point as an outlier if it’s weird for that specific promo.
+
 def detect_multi_event_outliers(df, target_col='sales', period=52, multiplier=3):
     # Robust STL identifies 'Organic Baseline' (Trend + Seasonal)
+    # 1. GENERATE BASELINE: Use STL to isolate 'Organic' sales (Trend + Season)
+    # We use the residuals (Actual - Baseline) to measure the specific 'lift' of promos.
     stl = STL(df[target_col], period=period, robust=True)
     res = stl.fit()
     df['resid'] = res.resid
@@ -86,24 +92,33 @@ def detect_multi_event_outliers(df, target_col='sales', period=52, multiplier=3)
     df['upper_limit'] = np.nan
     df['lower_limit'] = np.nan
 
+
+    # 2. CONTEXTUAL ANALYSIS: Group by promo_type to compare apples to apples
     # Group residuals by specific promo type (e.g., compare all BOGOs to each other)
     for etype in df['promo_type'].unique():
         mask = (df['promo_type'] == etype)
         subset_resid = df.loc[mask, 'resid']
         
-        # Need at least 2 occurrences of a promo type to calculate deviation (MAD)
+        
+        # 3. STATISTICAL VALIDATION: Ensure we have enough data points.
+        #   # Need at least 2 occurrences of a promo type to calculate deviation (MAD)
+        # If we have only 1 event, MAD is 0 and we cannot statistically define an outlier.
+        # Skip outlier detection for unique/single-occurrence events
+            # to avoid false positives caused by a zero-width threshold
         if len(subset_resid) < 2: # why this code- see explanation below -- find why  len(subset_resid) < 2
             continue
             
         median_lift = subset_resid.median()
         mad = (subset_resid - median_lift).abs().median()
         thresh = multiplier * (1.4826 * mad)
-        
+        #Multiplying by 1.4826 "stretches" the MAD so it behaves like a Standard Deviation, but without the weakness of being skewed by your massive promo spikes.
+   
+        # 4. SET THE FENCE: Organic Baseline + Typical Promo Lift +/- Tolerance
         # Calculate limits: Baseline + Typical Lift for this specific promo +/- Threshold
         df.loc[mask, 'upper_limit'] = df.loc[mask, 'baseline'] + median_lift + thresh
         df.loc[mask, 'lower_limit'] = df.loc[mask, 'baseline'] + median_lift - thresh
         
-        # Flag outliers within this specific bucket
+        # 5. FLAG OUTLIERS: Identify points that are extreme even for this event type
         outlier_cond = (df['resid'] > (median_lift + thresh)) | \
                        (df['resid'] < (median_lift - thresh))
         df.loc[mask & outlier_cond, 'is_outlier'] = True
@@ -193,6 +208,9 @@ print(performance_report)
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+
+
+
 
 def plot_outlier_results(df, series_id):
     # Filter for the specific series
