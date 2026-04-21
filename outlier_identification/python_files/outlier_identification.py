@@ -216,7 +216,7 @@ def generate_outlier_summary(df):
 
 print(df_final[df_final['series_id'] == 'Product_001'].head(200))
 
-# plot_outlier_results(df_final[df_final['series_id'] == 'Product_001'], 'Product_001')
+plot_outlier_results(df_final[df_final['series_id'] == 'Product_001'], 'Product_001')
 summary_report = generate_outlier_summary(df_final)
 print("summary report below:")
 print(summary_report.head(20))
