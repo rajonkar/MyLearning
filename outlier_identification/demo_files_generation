@@ -66,8 +66,8 @@ def generate_retail_sample(num_series=100, weeks=105):
 sales_df, events_df, promos_df = generate_retail_sample()
 
 # Save for your notebook
-# sales_df.to_csv('sales.csv', index=False)
-# events_df.to_csv('events.csv', index=False)
-# promos_df.to_csv('promos.csv', index=False)
+# sales_df.to_csv('outlier_identification/sales.csv', index=False)
+# events_df.to_csv('outlier_identification/events.csv', index=False)
+# promos_df.to_csv('outlier_identification/promos.csv', index=False)
 
 print(f"Generated {sales_df['series_id'].nunique()} series with {len(sales_df)} total rows.")
