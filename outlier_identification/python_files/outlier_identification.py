@@ -121,6 +121,55 @@ def detect_time_series_outliers(df, target_col='sales', period=52):
             
     return df
 
+
+
+# modify the funcion above to ad lower an dupper limit and  include the multiplier of MAD as config
+
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.seasonal import STL
+
+def detect_time_series_outliers(df, target_col='sales', period=52, multiplier=3):
+    """
+    Identifies outliers and adds the calculated upper/lower limits to the dataframe.
+    """
+    # 1. Decompose to get the baseline (Trend + Seasonality)
+    stl = STL(df[target_col], period=period, robust=True)
+    result = stl.fit()
+    
+    df['resid'] = result.resid
+    df['baseline'] = result.trend + result.seasonal
+    
+    # Initialize result columns
+    df['is_outlier'] = False
+    df['upper_limit'] = np.nan
+    df['lower_limit'] = np.nan
+
+    # 2. Process Normal and Special buckets separately
+    for is_special in [True, False]:
+        mask = (df['is_special'] == is_special)
+        if mask.any():
+            subset_resid = df.loc[mask, 'resid']
+            
+            # Robust Statistics
+            median = subset_resid.median()
+            mad = (subset_resid - median).abs().median()
+            
+            # Calculate Thresholds (1.4826 makes MAD comparable to Std Dev)
+            thresh = multiplier * (1.4826 * mad)
+            
+            # 3. Set the Limits (Baseline + Median Residual + Threshold)
+            # We include the median residual in case promos have a constant offset
+            df.loc[mask, 'upper_limit'] = df.loc[mask, 'baseline'] + median + thresh
+            df.loc[mask, 'lower_limit'] = df.loc[mask, 'baseline'] + median - thresh
+            
+            # 4. Flag Outliers
+            outlier_mask = (df['resid'] > (median + thresh)) | (df['resid'] < (median - thresh))
+            df.loc[mask & outlier_mask, 'is_outlier'] = True
+            
+    return df
+
+
 # Example usage:
 # df_cleaned = detect_time_series_outliers(df)
 # print(df_cleaned[df_cleaned['is_outlier']])
@@ -169,6 +218,44 @@ def plot_outlier_results(df, series_id):
 
 
 
+# modify above to add the lower and upper limit
+
+# def plot_outlier_results(df, series_id):
+#     plt.figure(figsize=(15, 7))
+    
+#     # 1. Calculate the 'Expected' line (Trend + Seasonal)
+#     # This is what the model thinks "Normal" looks like before the Residual
+#     df['expected'] = df['sales'] - df['resid']
+    
+#     # 2. Calculate thresholds for both buckets to draw the limit lines
+#     for is_special in [True, False]:
+#         mask = (df['is_special'] == is_special)
+#         if mask.any():
+#             resids = df.loc[mask, 'resid']
+#             median = resids.median()
+#             mad = (resids - median).abs().median()
+            
+#             # Calculate the boundaries in units of 'Sales'
+#             df.loc[mask, 'upper_limit'] = df['expected'] + (3 * 1.4826 * mad) + median
+#             df.loc[mask, 'lower_limit'] = df['expected'] - (3 * 1.4826 * mad) + median
+
+#     # 3. Plot Actuals vs Expected
+#     plt.plot(df['week_start'], df['sales'], color='gray', alpha=0.3, label='Actual Sales')
+#     plt.plot(df['week_start'], df['expected'], color='blue', label='Baseline (Trend+Season)', linestyle='--')
+
+#     # 4. Plot the dynamic Outlier Boundaries
+#     plt.step(df['week_start'], df['upper_limit'], color='red', alpha=0.4, label='Upper Bound', where='mid')
+#     plt.step(df['week_start'], df['lower_limit'], color='orange', alpha=0.4, label='Lower Bound', where='mid')
+
+#     # 5. Highlight Outliers
+#     outliers = df[df['is_outlier'] == True]
+#     plt.scatter(outliers['week_start'], outliers['sales'], color='red', marker='x', s=100, label='Outliers')
+
+#     plt.title(f'Outlier Detection Bounds: {series_id}')
+#     plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+#     plt.grid(True, alpha=0.2)
+#     plt.show()
+
 
 
 
@@ -215,10 +302,13 @@ def generate_outlier_summary(df):
 # summary_report = generate_outlier_summary(df_final)
 # print(summary_report.head(10)) # Top 10 series with most anomalies
 
-print(df_final[df_final['series_id'] == 'Product_001'].head(20))
+# print(df_final[df_final['series_id'] == 'Product_001'].head(20))
 
-plot_outlier_results(df_final[df_final['series_id'] == 'Product_001'], 'Product_001')
-summary_report = generate_outlier_summary(df_final)
-print("summary report below:")
-print(summary_report.head(20))
+plot_outlier_results(df_final[df_final['series_id'] == 'Product_002'], 'Product_001')
+# (df_final[df_final['series_id'] == 'Product_001']).to_csv('outlier_identification/product_001_ver2.csv', index=False)
+# summary_report = generate_outlier_summary(df_final)
+# print("summary report below:")
+# print(summary_report.head(20))
+
+
 
