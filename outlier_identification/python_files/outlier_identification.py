@@ -128,4 +128,92 @@ def detect_time_series_outliers(df, target_col='sales', period=52):
 
 df_final = prepare_and_join(sales_df, events_df, promos_df)
 
+# Detect outliers
+df_final = detect_time_series_outliers(df_final, target_col='sales', period=52)
+
 print(df_final.head())
+
+
+
+#This visualization snippet helps you confirm that the Robust STL logic is correctly distinguishing between legitimate promotional spikes and actual anomalies.
+
+import matplotlib.pyplot as plt
+
+def plot_outlier_results(df, series_id):
+    plt.figure(figsize=(14, 6))
+    
+    # 1. Plot the actual sales line
+    plt.plot(df['week_start'], df['sales'], color='#1f77b4', label='Weekly Sales', alpha=0.8, linewidth=1.5)
+    
+    # 2. Highlight Known Events (Green dots)
+    special_days = df[df['is_special'] == True]
+    plt.scatter(special_days['week_start'], special_days['sales'], 
+                color='green', label='Promos/Events (BOGO, BF)', s=60, edgecolors='white', zorder=5)
+    
+    # 3. Highlight Detected Outliers (Red X)
+    outliers = df[df['is_outlier'] == True]
+    plt.scatter(outliers['week_start'], outliers['sales'], 
+                marker='x', color='red', s=100, label='Detected Outliers', zorder=6)
+    
+    plt.title(f'Outlier Detection for {series_id}', fontsize=14)
+    plt.xlabel('Date')
+    plt.ylabel('Sales Volume')
+    plt.legend(frameon=True, loc='upper left')
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.show()
+
+# Example usage for one series
+# plot_outlier_results(df_final[df_final['series_id'] == 'Product_001'], 'Product_001')
+
+
+
+
+
+
+
+#. plot the outliers
+#This summary report will help you scan all 100 series at once to see which products are the "troublemakers" (those with frequent stockouts or data errors).
+
+
+def generate_outlier_summary(df):
+    """
+    Aggregates outlier counts across all series, 
+    breaking them down by High-side vs Low-side.
+    """
+    summary = []
+    
+    for sid, group in df.groupby('series_id'):
+        # Only look at rows marked as outliers
+        outliers = group[group['is_outlier'] == True]
+        
+        # Determine if outlier was above or below the expected residual
+        high_side = (outliers['resid'] > 0).sum()
+        low_side = (outliers['resid'] < 0).sum()
+        
+        # Calculate percentage of weeks that are anomalous
+        pct_impacted = (len(outliers) / len(group)) * 100
+        
+        summary.append({
+            'series_id': sid,
+            'total_outliers': len(outliers),
+            'high_side_spikes': high_side,
+            'low_side_dips': low_side,
+            'impact_pct': f"{pct_impacted:.1f}%"
+        })
+    
+    summary_df = pd.DataFrame(summary).sort_values(by='total_outliers', ascending=False)
+    
+    print("--- Outlier Detection Summary Report ---")
+    print(f"Total Series Processed: {df['series_id'].nunique()}")
+    print(f"Total Outliers Found: {summary_df['total_outliers'].sum()}")
+    print("-" * 40)
+    return summary_df
+
+# Usage
+# summary_report = generate_outlier_summary(df_final)
+# print(summary_report.head(10)) # Top 10 series with most anomalies
+
+
+
+plot_outlier_results(df_final[df_final['series_id'] == 'Product_001'], 'Product_001')
