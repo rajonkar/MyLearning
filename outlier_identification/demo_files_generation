@@ -2,17 +2,19 @@
 import pandas as pd
 import numpy as np
 import os
+import sys
 # cmd_shift_+p in mac to select the python interpereter. Select the venv
 # Set the new working directory
 os.chdir('/Users/rajonkar/Documents/MyLearning/')
 
 # Verify the change
 print(os.getcwd())
+print(sys.executable) # proves the venv is used
 
 
 # You can programmatically verify activation by running a simple command within your Python script
 #If this returns True, you are running inside a virtual environment
-import sys
+
 print(sys.prefix != sys.base_prefix)
 
 def generate_retail_sample(num_series=100, weeks=105):
