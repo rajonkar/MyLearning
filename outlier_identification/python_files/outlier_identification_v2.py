@@ -47,11 +47,10 @@ promos_df= pd.read_csv('outlier_identification/promos.csv')
 # events_df: column 'event_date' (e.g., '2023-11-24')
 # promos_df: columns 'start_date', 'end_date'
 
-# Date Alignment: It takes single-day events (like a Friday Black Friday) and figures out which Monday-to-Sunday week bucket they fall into.
-# Overlap Logic: It looks at your BOGO start/end dates. Even if a BOGO only lasted 3 days, it flags the entire week as a "Promo Week."
-# Flagging: It creates the is_special (or is_promo) column that your outlier detector uses to decide whether to compare a data point against "Normal" logic or "Promo" logic.
+# The updated prepare_and_join_granular function assigns a specific label to each week based on your events 
+# and promotions files. This allows the subsequent detection function to compare BOGO weeks against other BOGO weeks, 
+# and Black Friday against other Black Fridays, rather than grouping all spikes together.
 
-# commenting becasue we have already created the file df_final
 
 def prepare_and_join_granular(sales_df, events_df, promos_df):
     # Standardize dates
@@ -83,5 +82,40 @@ df_final.to_csv('outlier_identification/df_final_v2.csv', index=False)
 # Now you can pass df_final into the STL outlier function from the above step
 
 
+# 2. Multi-Event Outlier Detection
+# This function calculates separate thresholds for every unique label in your promo_type column.
 
-#----------------part2 ----------------------
+def detect_multi_event_outliers(df, target_col='sales', period=52, multiplier=3):
+    # Robust STL identifies 'Organic Baseline' (Trend + Seasonal)
+    stl = STL(df[target_col], period=period, robust=True)
+    res = stl.fit()
+    df['resid'] = res.resid
+    df['baseline'] = res.trend + res.seasonal
+    
+    df['is_outlier'] = False
+    df['upper_limit'] = np.nan
+    df['lower_limit'] = np.nan
+
+    # Group residuals by specific promo type (e.g., compare all BOGOs to each other)
+    for etype in df['promo_type'].unique():
+        mask = (df['promo_type'] == etype)
+        subset_resid = df.loc[mask, 'resid']
+        
+        # Need at least 2 occurrences of a promo type to calculate deviation (MAD)
+        if len(subset_resid) < 2:
+            continue
+            
+        median_lift = subset_resid.median()
+        mad = (subset_resid - median_lift).abs().median()
+        thresh = multiplier * (1.4826 * mad)
+        
+        # Calculate limits: Baseline + Typical Lift for this specific promo +/- Threshold
+        df.loc[mask, 'upper_limit'] = df.loc[mask, 'baseline'] + median_lift + thresh
+        df.loc[mask, 'lower_limit'] = df.loc[mask, 'baseline'] + median_lift - thresh
+        
+        # Flag outliers within this specific bucket
+        outlier_cond = (df['resid'] > (median_lift + thresh)) | \
+                       (df['resid'] < (median_lift - thresh))
+        df.loc[mask & outlier_cond, 'is_outlier'] = True
+            
+    return df
