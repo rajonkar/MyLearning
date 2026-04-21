@@ -214,6 +214,9 @@ def generate_outlier_summary(df):
 # summary_report = generate_outlier_summary(df_final)
 # print(summary_report.head(10)) # Top 10 series with most anomalies
 
+print("printing outliers",df_final[df_final['series_id'] == 'Product_001'],'Product_001').head(20)
 
+# plot_outlier_results(df_final[df_final['series_id'] == 'Product_001'], 'Product_001')
+# summary_report = generate_outlier_summary(df_final)
+# print(summary_report.head(10))
 
-plot_outlier_results(df_final[df_final['series_id'] == 'Product_001'], 'Product_001')
