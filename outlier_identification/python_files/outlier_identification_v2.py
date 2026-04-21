@@ -239,7 +239,7 @@ def plot_outlier_results(df, series_id):
 plot_outlier_results(df_final[df_final['series_id'] == 'Product_001'], 'Product_001')
 
 
-
+df_final[df_final['series_id'] == 'Product_001'].to_csv('outlier_identification/product_001_analysis_ver.csv', index=False)
 
 
 
@@ -320,9 +320,9 @@ def process_all_series(sales_df, events_df, promos_df, multiplier=3):
     return final_df, summary
 
 # --- EXECUTION ---
-# final_data, outlier_summary = process_all_series(sales_df, events_df, promos_df)
+final_data, outlier_summary = process_all_series(sales_df, events_df, promos_df)
 
 # Save to CSV
-# outlier_summary.to_csv('outlier_analysis_report.csv', index=False)
+outlier_summary.to_csv('outlier_identification/outlier_analysis_report.csv', index=False)
 # print("Processing complete. Top outliers:")
 # print(outlier_summary.head(15))
