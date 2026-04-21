@@ -138,7 +138,7 @@ def detect_time_series_outliers(df, target_col='sales', period=52, multiplier=3)
     result = stl.fit()
     
     df['resid'] = result.resid
-    df['baseline'] = result.trend + result.seasonal
+    df['baseline'] = result.trend + result.seasonal #baseline: This captures the "predictable" part of your data.
     
     # Initialize result columns
     df['is_outlier'] = False
