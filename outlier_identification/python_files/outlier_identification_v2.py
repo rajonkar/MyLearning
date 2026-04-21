@@ -43,26 +43,31 @@ promos_df= pd.read_csv('outlier_identification/promos.csv')
 # and Black Friday against other Black Fridays, rather than grouping all spikes together.
 
 
-def prepare_and_join_granular(sales_df, events_df, promos_df):
-    # Standardize dates
+def prepare_and_join_combined(sales_df, events_df, promos_df):
     sales_df['week_start'] = pd.to_datetime(sales_df['week_start'])
     sales_df['week_end'] = sales_df['week_start'] + pd.Timedelta(days=6)
     
-    # Default category is 'Normal'
+    # Initialize with 'Normal'
     sales_df['promo_type'] = 'Normal'
 
-    # Map Events (e.g., Black Friday, Memorial Day)
+    # 1. Map Events first
     for _, row in events_df.iterrows():
         mask = (sales_df['week_start'] <= pd.to_datetime(row['event_date'])) & \
                (sales_df['week_end'] >= pd.to_datetime(row['event_date']))
         sales_df.loc[mask, 'promo_type'] = row['event']
 
-    # Map Promos (e.g., BOGO, Buy2Get2)
-    # This overwrites 'Normal' with the specific promo name
+    # 2. Map Promos and CHECK FOR OVERLAPS
     for _, row in promos_df.iterrows():
         mask = (sales_df['week_start'] <= pd.to_datetime(row['end_date'])) & \
                (sales_df['week_end'] >= pd.to_datetime(row['start_date']))
-        sales_df.loc[mask, 'promo_type'] = row['type']
+        
+        # If the week is still 'Normal', just assign the promo type
+        normal_mask = mask & (sales_df['promo_type'] == 'Normal')
+        sales_df.loc[normal_mask, 'promo_type'] = row['type']
+        
+        # If the week ALREADY has an event, combine the names
+        overlap_mask = mask & (sales_df['promo_type'] != 'Normal') & (sales_df['promo_type'] != row['type'])
+        sales_df.loc[overlap_mask, 'promo_type'] = sales_df.loc[overlap_mask, 'promo_type'] + " + " + row['type']
 
     return sales_df
 
