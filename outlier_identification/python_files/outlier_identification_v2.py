@@ -92,7 +92,7 @@ def detect_multi_event_outliers(df, target_col='sales', period=52, multiplier=3)
         subset_resid = df.loc[mask, 'resid']
         
         # Need at least 2 occurrences of a promo type to calculate deviation (MAD)
-        if len(subset_resid) < 2:
+        if len(subset_resid) < 2: # why this code- see explanation below -- find why  len(subset_resid) < 2
             continue
             
         median_lift = subset_resid.median()
@@ -238,8 +238,8 @@ def plot_outlier_results(df, series_id):
 
 plot_outlier_results(df_final[df_final['series_id'] == 'Product_001'], 'Product_001')
 
-
-df_final[df_final['series_id'] == 'Product_001'].to_csv('outlier_identification/product_001_analysis_ver.csv', index=False)
+print("print the troibleshooting")
+# (df_final[df_final['series_id'] == 'Product_001']).to_csv('outlier_identification/product_001_analysis_ver.csv', index=False)
 
 
 
@@ -253,76 +253,98 @@ df_final[df_final['series_id'] == 'Product_001'].to_csv('outlier_identification/
 # all above combined into one function for easier execution and reporting
 
 
-def process_all_series(sales_df, events_df, promos_df, multiplier=3):
-    """
-    1. Joins data granularly
-    2. Loops through every series_id
-    3. Detects outliers per promo_type
-    4. Returns a master dataframe and a summary report
-    """
+# def process_all_series(sales_df, events_df, promos_df, multiplier=3):
+#     """
+#     1. Joins data granularly
+#     2. Loops through every series_id
+#     3. Detects outliers per promo_type
+#     4. Returns a master dataframe and a summary report
+#     """
     
-    # --- STEP 1: PREPARE AND JOIN ---
-    sales_df['week_start'] = pd.to_datetime(sales_df['week_start'])
-    sales_df['week_end'] = sales_df['week_start'] + pd.Timedelta(days=6)
-    sales_df['promo_type'] = 'Normal'
+#     # --- STEP 1: PREPARE AND JOIN ---
+#     sales_df['week_start'] = pd.to_datetime(sales_df['week_start'])
+#     sales_df['week_end'] = sales_df['week_start'] + pd.Timedelta(days=6)
+#     sales_df['promo_type'] = 'Normal'
 
-    # Map Events
-    for _, row in events_df.iterrows():
-        mask = (sales_df['week_start'] <= pd.to_datetime(row['event_date'])) & \
-               (sales_df['week_end'] >= pd.to_datetime(row['event_date']))
-        sales_df.loc[mask, 'promo_type'] = row['event']
+#     # Map Events
+#     for _, row in events_df.iterrows():
+#         mask = (sales_df['week_start'] <= pd.to_datetime(row['event_date'])) & \
+#                (sales_df['week_end'] >= pd.to_datetime(row['event_date']))
+#         sales_df.loc[mask, 'promo_type'] = row['event']
 
-    # Map Promos (BOGO, etc.)
-    for _, row in promos_df.iterrows():
-        mask = (sales_df['week_start'] <= pd.to_datetime(row['end_date'])) & \
-               (sales_df['week_end'] >= pd.to_datetime(row['start_date']))
-        sales_df.loc[mask, 'promo_type'] = row['type']
+#     # Map Promos (BOGO, etc.)
+#     for _, row in promos_df.iterrows():
+#         mask = (sales_df['week_start'] <= pd.to_datetime(row['end_date'])) & \
+#                (sales_df['week_end'] >= pd.to_datetime(row['start_date']))
+#         sales_df.loc[mask, 'promo_type'] = row['type']
 
-    # --- STEP 2: LOOP THROUGH SERIES ---
-    all_results = []
+#     # --- STEP 2: LOOP THROUGH SERIES ---
+#     all_results = []
     
-    for sid, group in sales_df.groupby('series_id'):
-        # Sort by date for STL
-        group = group.sort_values('week_start')
+#     for sid, group in sales_df.groupby('series_id'):
+#         # Sort by date for STL
+#         group = group.sort_values('week_start')
         
-        # Apply STL
-        stl = STL(group['sales'], period=52, robust=True)
-        res = stl.fit()
-        group['resid'] = res.resid
-        group['baseline'] = res.trend + res.seasonal
-        group['is_outlier'] = False
+#         # Apply STL
+#         stl = STL(group['sales'], period=52, robust=True)
+#         res = stl.fit()
+#         group['resid'] = res.resid
+#         group['baseline'] = res.trend + res.seasonal
+#         group['is_outlier'] = False
         
-        # Detect Outliers per Category
-        for etype in group['promo_type'].unique():
-            mask = (group['promo_type'] == etype)
-            subset = group.loc[mask, 'resid']
+#         # Detect Outliers per Category
+#         for etype in group['promo_type'].unique():
+#             mask = (group['promo_type'] == etype)
+#             subset = group.loc[mask, 'resid']
             
-            if len(subset) >= 2:
-                median_lift = subset.median()
-                mad = (subset - median_lift).abs().median()
-                thresh = multiplier * (1.4826 * mad)
+#             if len(subset) >= 2:
+#                 median_lift = subset.median()
+#                 mad = (subset - median_lift).abs().median()
+#                 thresh = multiplier * (1.4826 * mad)
                 
-                # Flag
-                outlier_mask = (group['resid'] > (median_lift + thresh)) | \
-                               (group['resid'] < (median_lift - thresh))
-                group.loc[mask & outlier_mask, 'is_outlier'] = True
+#                 # Flag
+#                 outlier_mask = (group['resid'] > (median_lift + thresh)) | \
+#                                (group['resid'] < (median_lift - thresh))
+#                 group.loc[mask & outlier_mask, 'is_outlier'] = True
         
-        all_results.append(group)
+#         all_results.append(group)
     
-    final_df = pd.concat(all_results)
+#     final_df = pd.concat(all_results)
     
-    # --- STEP 3: GENERATE SUMMARY ---
-    outliers_only = final_df[final_df['is_outlier'] == True].copy()
-    outliers_only['side'] = np.where(outliers_only['resid'] > 0, 'High (Spike)', 'Low (Dip)')
+#     # --- STEP 3: GENERATE SUMMARY ---
+#     outliers_only = final_df[final_df['is_outlier'] == True].copy()
+#     outliers_only['side'] = np.where(outliers_only['resid'] > 0, 'High (Spike)', 'Low (Dip)')
     
-    summary = outliers_only.groupby(['series_id', 'promo_type', 'side']).size().reset_index(name='count')
+#     summary = outliers_only.groupby(['series_id', 'promo_type', 'side']).size().reset_index(name='count')
     
-    return final_df, summary
+#     return final_df, summary
 
-# --- EXECUTION ---
-final_data, outlier_summary = process_all_series(sales_df, events_df, promos_df)
+# # --- EXECUTION ---
 
-# Save to CSV
-outlier_summary.to_csv('outlier_identification/outlier_analysis_report.csv', index=False)
-# print("Processing complete. Top outliers:")
-# print(outlier_summary.head(15))
+
+# sales_df= pd.read_csv('outlier_identification/sales.csv')
+# events_df= pd.read_csv('outlier_identification/events.csv')
+# promos_df= pd.read_csv('outlier_identification/promos.csv')
+# final_data, outlier_summary = process_all_series(sales_df, events_df, promos_df)
+
+# # Save to CSV
+# outlier_summary.to_csv('outlier_identification/outlier_analysis_report.csv', index=False)
+# # print("Processing complete. Top outliers:")
+# # print(outlier_summary.head(15))
+
+
+
+
+#### why len(subset_resid) < 2
+
+# if you only have one occurrence of a promo type, the mad (Median Absolute Deviation) will be zero.
+# Here is the step-by-step math for a single event:
+# Subset Residuals: Let's say you have one "Special Sale" and its residual is 500.
+# Median Lift: median([500]) = 500.
+# MAD Calculation: median(abs(500 - 500)) = 0.
+# Threshold: 3 * (1.4826 * 0) = 0.
+# Outlier Condition: Is 500 > (500 + 0)?
+# The answer is False.
+# Because the mad becomes 0, the "fence" sits exactly on the data point itself. It has no "width." Therefore, a single event can never be "further away" from itself than 0.
+# The "N=1" Problem
+# As you can see in the code you shared, there is a safety check for this:
