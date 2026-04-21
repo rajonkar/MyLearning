@@ -65,6 +65,7 @@ def prepare_and_join(sales_df, events_df, promos_df):
 
 # Run the join
 df_final = prepare_and_join(sales_df, events_df, promos_df)
+df_final.to_csv('outlier_identification/df_final.csv', index=False)
 
 # Now you can pass df_final into the STL outlier function from the above step
 
@@ -214,7 +215,7 @@ def generate_outlier_summary(df):
 # summary_report = generate_outlier_summary(df_final)
 # print(summary_report.head(10)) # Top 10 series with most anomalies
 
-print(df_final[df_final['series_id'] == 'Product_001'].head(200))
+print(df_final[df_final['series_id'] == 'Product_001'].head(20))
 
 plot_outlier_results(df_final[df_final['series_id'] == 'Product_001'], 'Product_001')
 summary_report = generate_outlier_summary(df_final)
