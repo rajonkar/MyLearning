@@ -30,6 +30,8 @@ from statsmodels.tsa.seasonal import STL
 
 import pandas as pd
 
+
+
 print(os.getcwd())
 print(sys.executable) # proves the venv is used
 
@@ -47,7 +49,7 @@ promos_df= pd.read_csv('outlier_identification/promos.csv')
 # events_df: column 'event_date' (e.g., '2023-11-24')
 # promos_df: columns 'start_date', 'end_date'
 
-# The updated prepare_and_join_granular function assigns a specific label to each week based on your events 
+# The prepare_and_join_granular function assigns a specific label to each week based on your events 
 # and promotions files. This allows the subsequent detection function to compare BOGO weeks against other BOGO weeks, 
 # and Black Friday against other Black Fridays, rather than grouping all spikes together.
 
@@ -119,3 +121,167 @@ def detect_multi_event_outliers(df, target_col='sales', period=52, multiplier=3)
         df.loc[mask & outlier_cond, 'is_outlier'] = True
             
     return df
+
+
+import matplotlib.pyplot as plt
+
+def plot_multi_event_outliers(df, series_id):
+    """
+    Plots sales, the organic baseline, and the dynamic thresholds 
+    for each specific promo/event type.
+    """
+    plt.figure(figsize=(15, 8))
+    
+    # 1. Plot Raw Data and Organic Baseline
+    plt.plot(df['week_start'], df['sales'], color='gray', alpha=0.3, label='Actual Sales')
+    plt.plot(df['week_start'], df['baseline'], color='blue', linestyle='--', alpha=0.6, label='Organic Baseline (Trend+Season)')
+
+    # 2. Plot the dynamic Outlier Boundaries (Upper and Lower)
+    # Using .step() with 'mid' creates the 'shelf' effect for different promos
+    plt.step(df['week_start'], df['upper_limit'], color='red', alpha=0.4, label='Upper Bound (Event Adjusted)', where='mid')
+    plt.step(df['week_start'], df['lower_limit'], color='orange', alpha=0.4, label='Lower Bound (Event Adjusted)', where='mid')
+
+    # 3. Highlight Outliers (Red X)
+    outliers = df[df['is_outlier'] == True]
+    plt.scatter(outliers['week_start'], outliers['sales'], color='red', marker='x', s=120, label='Detected Outliers', zorder=5)
+
+    # 4. Color-code the background based on promo_type for clarity
+    unique_promos = df[df['promo_type'] != 'Normal']['promo_type'].unique()
+    colors = plt.cm.get_cmap('Set3', len(unique_promos))
+    
+    for i, p_type in enumerate(unique_promos):
+        promo_weeks = df[df['promo_type'] == p_type]
+        for start_date in promo_weeks['week_start']:
+            plt.axvspan(start_date, start_date + pd.Timedelta(days=6), color=colors(i), alpha=0.1)
+
+    plt.title(f'Multi-Event Outlier Detection: {series_id}', fontsize=16)
+    plt.ylabel('Sales Volume')
+    plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    plt.grid(True, linestyle=':', alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+
+# Usage:
+
+
+
+
+
+def summarize_promo_performance(df):
+    """
+    Groups outliers by promo type and side (High vs Low) 
+    to see which marketing events are the most unstable.
+    """
+    # 1. Only look at detected outliers
+    outliers_df = df[df['is_outlier'] == True].copy()
+    
+    # 2. Determine if the outlier was High or Low relative to the expected lift
+    outliers_df['side'] = np.where(outliers_df['resid'] > 0, 'High-Side (Over-perf)', 'Low-Side (Under-perf)')
+    
+    # 3. Create the summary table
+    summary = outliers_df.groupby(['promo_type', 'side']).size().unstack(fill_value=0)
+    
+    # 4. Calculate total instances of each promo to get an "Anomaly Rate"
+    total_counts = df['promo_type'].value_counts()
+    summary['Total_Occurrences'] = total_counts
+    summary['Anomaly_Rate_%'] = (summary.sum(axis=1) / total_counts * 100).round(1)
+    
+    return summary.sort_values('Anomaly_Rate_%', ascending=False)
+
+
+
+
+# First, detect outliers
+df_result = detect_multi_event_outliers(df_final, target_col='sales', period=52)
+# plot_multi_event_outliers(df_result, 'Product_001')
+
+# Usage:
+performance_report = summarize_promo_performance(df_result)
+print(performance_report)
+
+
+
+
+
+
+# Here is the complete, production-ready script. 
+# It loops through all 100 series, applies the granular detection logic, and outputs a summary of every outlier 
+# found across your entire catalog.
+
+
+# all above combined into one function for easier execution and reporting
+
+
+def process_all_series(sales_df, events_df, promos_df, multiplier=3):
+    """
+    1. Joins data granularly
+    2. Loops through every series_id
+    3. Detects outliers per promo_type
+    4. Returns a master dataframe and a summary report
+    """
+    
+    # --- STEP 1: PREPARE AND JOIN ---
+    sales_df['week_start'] = pd.to_datetime(sales_df['week_start'])
+    sales_df['week_end'] = sales_df['week_start'] + pd.Timedelta(days=6)
+    sales_df['promo_type'] = 'Normal'
+
+    # Map Events
+    for _, row in events_df.iterrows():
+        mask = (sales_df['week_start'] <= pd.to_datetime(row['event_date'])) & \
+               (sales_df['week_end'] >= pd.to_datetime(row['event_date']))
+        sales_df.loc[mask, 'promo_type'] = row['event']
+
+    # Map Promos (BOGO, etc.)
+    for _, row in promos_df.iterrows():
+        mask = (sales_df['week_start'] <= pd.to_datetime(row['end_date'])) & \
+               (sales_df['week_end'] >= pd.to_datetime(row['start_date']))
+        sales_df.loc[mask, 'promo_type'] = row['type']
+
+    # --- STEP 2: LOOP THROUGH SERIES ---
+    all_results = []
+    
+    for sid, group in sales_df.groupby('series_id'):
+        # Sort by date for STL
+        group = group.sort_values('week_start')
+        
+        # Apply STL
+        stl = STL(group['sales'], period=52, robust=True)
+        res = stl.fit()
+        group['resid'] = res.resid
+        group['baseline'] = res.trend + res.seasonal
+        group['is_outlier'] = False
+        
+        # Detect Outliers per Category
+        for etype in group['promo_type'].unique():
+            mask = (group['promo_type'] == etype)
+            subset = group.loc[mask, 'resid']
+            
+            if len(subset) >= 2:
+                median_lift = subset.median()
+                mad = (subset - median_lift).abs().median()
+                thresh = multiplier * (1.4826 * mad)
+                
+                # Flag
+                outlier_mask = (group['resid'] > (median_lift + thresh)) | \
+                               (group['resid'] < (median_lift - thresh))
+                group.loc[mask & outlier_mask, 'is_outlier'] = True
+        
+        all_results.append(group)
+    
+    final_df = pd.concat(all_results)
+    
+    # --- STEP 3: GENERATE SUMMARY ---
+    outliers_only = final_df[final_df['is_outlier'] == True].copy()
+    outliers_only['side'] = np.where(outliers_only['resid'] > 0, 'High (Spike)', 'Low (Dip)')
+    
+    summary = outliers_only.groupby(['series_id', 'promo_type', 'side']).size().reset_index(name='count')
+    
+    return final_df, summary
+
+# --- EXECUTION ---
+# final_data, outlier_summary = process_all_series(sales_df, events_df, promos_df)
+
+# Save to CSV
+# outlier_summary.to_csv('outlier_analysis_report.csv', index=False)
+# print("Processing complete. Top outliers:")
+# print(outlier_summary.head(15))
