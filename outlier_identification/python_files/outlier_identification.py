@@ -5,6 +5,11 @@ from statsmodels.tsa.seasonal import STL
 
 import pandas as pd
 
+
+sales_df= pd.read_csv('outlier_identification/sales.csv')
+events_df= pd.read_csv('outlier_identification/events.csv')
+promos_df= pd.read_csv('outlier_identification/promos.csv')
+
 # 1. Prepare your DataFrames
 # sales_df: index or column 'week_start' (Monday start)
 # events_df: column 'event_date' (e.g., '2023-11-24')
@@ -50,7 +55,7 @@ def prepare_and_join(sales_df, events_df, promos_df):
 # Run the join
 df_final = prepare_and_join(sales_df, events_df, promos_df)
 
-# Now you can pass df_final into the STL outlier function from the previous step
+# Now you can pass df_final into the STL outlier function from the above step
 
 
 
@@ -107,3 +112,7 @@ def detect_time_series_outliers(df, target_col='sales', period=52):
 # Example usage:
 # df_cleaned = detect_time_series_outliers(df)
 # print(df_cleaned[df_cleaned['is_outlier']])
+
+
+
+df_final = prepare_and_join(sales_df, events_df, promos_df)
