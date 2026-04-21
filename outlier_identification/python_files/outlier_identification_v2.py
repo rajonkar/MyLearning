@@ -77,8 +77,8 @@ def prepare_and_join_granular(sales_df, events_df, promos_df):
     return sales_df
 
 # Run the join
-df_final = prepare_and_join(sales_df, events_df, promos_df)
-df_final.to_csv('outlier_identification/df_final.csv', index=False)
+df_final = prepare_and_join_granular(sales_df, events_df, promos_df)
+df_final.to_csv('outlier_identification/df_final_v2.csv', index=False)
 
 # Now you can pass df_final into the STL outlier function from the above step
 
