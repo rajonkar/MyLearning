@@ -11,6 +11,7 @@ print(os.getcwd())
 
 
 # You can programmatically verify activation by running a simple command within your Python script
+#If this returns True, you are running inside a virtual environment
 import sys
 print(sys.prefix != sys.base_prefix)
 
