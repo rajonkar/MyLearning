@@ -43,7 +43,7 @@ promos_df= pd.read_csv('outlier_identification/promos.csv')
 # and Black Friday against other Black Fridays, rather than grouping all spikes together.
 
 
-def prepare_and_join_combined(sales_df, events_df, promos_df):
+def prepare_and_join_granular(sales_df, events_df, promos_df):
     sales_df['week_start'] = pd.to_datetime(sales_df['week_start'])
     sales_df['week_end'] = sales_df['week_start'] + pd.Timedelta(days=6)
     
