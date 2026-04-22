@@ -273,3 +273,10 @@ stratification_report = get_portfolio_stratification_report(final_df)
 stratification_report.to_csv("ver3/stratification_report.csv", index=False)
 
 # print(final_df[['series_id', 'history_count', 'f_ratio_trend', 'class']].drop_duplicates())
+
+"""
+How to use the Portfolio Stratification Report:
+    The "Workhorses": High sku_count + High total_vol_segment + High forecast_score. This is where your business lives. Keep these automated.
+    The "Troublemakers": High sku_count + High total_vol_segment + Low forecast_score. These are thousands of items that are all chaotic. This is where you need to check if your outlier thresholds (3 vs 5 MAD) are too sensitive.
+    The "Critical Few": Low sku_count + High total_vol_segment. Even if there are only 50 SKUs, if they represent 20% of your volume, they deserve a custom manual review of their outliers every week.
+"""
