@@ -1,0 +1,14 @@
+forecast_score,class,sku_count,total_vol_segment,vol_pct_of_total,avg_volume_per_sku,avg_outlier_count,avg_normal_weeks
+High,Seasonal with Trend,45,295970.12793927855,38.43,6577.11,9.6,111.7
+High,Regular Intermittent,37,163530.35146034157,21.23,4419.74,6.2,109.8
+High,Seasonal without Trend,12,73653.42763698913,9.56,6137.79,9.9,103.5
+Low,New SKU (< 1.25yr),24,93676.36518913023,12.16,3903.18,7.3,37.6
+Low,Regular Intermittent,11,41214.92726575055,5.35,3746.81,14.3,90.9
+Low,Non-Seasonal and No Trend,6,31554.493600502192,4.1,5259.08,6.0,69.8
+Low,Intermittent,2,6318.523190593165,0.82,3159.26,11.0,78.0
+Low,Seasonal without Trend,1,2052.803864960095,0.27,2052.8,33.0,142.0
+Medium,Regular Intermittent,6,25174.813879069152,3.27,4195.8,19.5,112.0
+Medium,Seasonal without Trend,2,14396.887664484919,1.87,7198.44,14.5,82.5
+Medium,New SKU (< 1.25yr),2,11627.690934694132,1.51,5813.85,5.0,53.0
+Medium,Non-Seasonal and No Trend,1,7191.285540335024,0.93,7191.29,17.0,89.0
+Medium,Intermittent,1,3875.601879679191,0.5,3875.6,11.0,66.0

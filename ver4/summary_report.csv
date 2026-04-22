@@ -1,0 +1,151 @@
+series_id,class,forecast_score,last_1yr_sales_vol,history_count,count_normal_weeks,count_promo_weeks,percent_normal_weeks,outlier_count
+Product_001,Seasonal with Trend,High,7634.888659802397,77,73,4,94.8,12
+Product_002,Seasonal with Trend,High,7886.272854333608,149,141,8,94.6,17
+Product_003,Regular Intermittent,High,5229.03302712949,134,126,8,94.0,5
+Product_004,Regular Intermittent,High,4810.282719464005,137,129,8,94.2,5
+Product_005,Seasonal without Trend,Low,2052.803864960095,150,142,8,94.7,33
+Product_006,Regular Intermittent,Low,3372.0498422022433,79,75,4,94.9,17
+Product_007,Seasonal with Trend,High,4146.08754465696,131,123,8,93.9,12
+Product_008,Non-Seasonal and No Trend,Low,4342.6014103594,73,69,4,94.5,7
+Product_009,Seasonal with Trend,High,9875.643391041665,116,108,8,93.1,14
+Product_010,New SKU (< 1.25yr),Low,2682.160747008994,48,45,3,93.8,16
+Product_011,New SKU (< 1.25yr),Low,7897.232121283472,47,44,3,93.6,5
+Product_012,Non-Seasonal and No Trend,Low,6007.459762071568,81,77,4,95.1,2
+Product_013,Regular Intermittent,High,5480.154713835451,128,120,8,93.8,12
+Product_014,Regular Intermittent,Medium,3887.209562952095,121,113,8,93.4,11
+Product_015,Regular Intermittent,Low,4446.482752233507,81,77,4,95.1,10
+Product_016,New SKU (< 1.25yr),Low,4133.979113518563,49,46,3,93.9,7
+Product_017,Regular Intermittent,High,4805.918493321953,109,102,7,93.6,1
+Product_018,New SKU (< 1.25yr),Low,5748.877742101637,32,30,2,93.8,4
+Product_019,Regular Intermittent,High,3320.913598508351,70,66,4,94.3,12
+Product_020,Seasonal with Trend,High,7513.994045857868,133,125,8,94.0,17
+Product_021,New SKU (< 1.25yr),Low,1812.6912981166429,35,32,3,91.4,12
+Product_022,Seasonal with Trend,High,7897.193074678179,108,101,7,93.5,0
+Product_023,Regular Intermittent,Low,2664.684199986195,86,79,7,91.9,3
+Product_024,Seasonal with Trend,High,4330.389008471672,129,121,8,93.8,15
+Product_025,Seasonal without Trend,High,5008.8347286907065,113,105,8,92.9,3
+Product_026,New SKU (< 1.25yr),Low,3269.7350816098055,34,31,3,91.2,1
+Product_027,Regular Intermittent,Low,3692.784177324054,153,145,8,94.8,43
+Product_028,Regular Intermittent,High,3208.6215654337625,107,100,7,93.5,2
+Product_029,New SKU (< 1.25yr),Low,3663.782864161342,24,23,1,95.8,5
+Product_030,New SKU (< 1.25yr),Low,6253.598952860041,49,46,3,93.9,3
+Product_031,Regular Intermittent,High,3956.501170071786,154,146,8,94.8,15
+Product_032,Regular Intermittent,Low,2649.6718935432027,112,104,8,92.9,6
+Product_033,Seasonal with Trend,High,5835.021923035897,75,71,4,94.7,4
+Product_034,Regular Intermittent,High,4862.886137580189,110,102,8,92.7,1
+Product_035,Non-Seasonal and No Trend,Low,5507.249692842755,67,63,4,94.0,8
+Product_036,Seasonal without Trend,High,7090.834852140637,96,89,7,92.7,10
+Product_037,Seasonal without Trend,High,9855.340967007503,79,75,4,94.9,10
+Product_038,Seasonal with Trend,High,7954.874354623548,85,79,6,92.9,8
+Product_039,Regular Intermittent,High,5751.987344651108,111,103,8,92.8,0
+Product_040,Regular Intermittent,High,5367.862776209681,129,121,8,93.8,2
+Product_041,Seasonal with Trend,High,8561.45057287643,150,142,8,94.7,18
+Product_042,New SKU (< 1.25yr),Low,2518.848023571666,20,19,1,95.0,7
+Product_043,New SKU (< 1.25yr),Low,3207.5374263552635,32,30,2,93.8,9
+Product_044,Seasonal with Trend,High,6348.937075107367,115,107,8,93.0,3
+Product_045,Seasonal without Trend,High,7181.626862590088,155,147,8,94.8,16
+Product_046,New SKU (< 1.25yr),Low,2403.7027487977584,21,20,1,95.2,2
+Product_047,Seasonal without Trend,High,3266.2993643141735,155,147,8,94.8,18
+Product_048,Seasonal with Trend,High,8131.076630818258,117,109,8,93.2,1
+Product_049,Seasonal with Trend,High,8083.669371314709,66,62,4,93.9,6
+Product_050,New SKU (< 1.25yr),Low,3277.2865291312264,26,25,1,96.2,4
+Product_051,Regular Intermittent,High,3586.0249305812354,88,81,7,92.0,19
+Product_052,New SKU (< 1.25yr),Medium,5242.9483515809225,58,54,4,93.1,6
+Product_053,Regular Intermittent,High,2904.446184350318,111,103,8,92.8,2
+Product_054,Seasonal with Trend,High,6760.932350614565,154,146,8,94.8,17
+Product_055,Seasonal with Trend,High,4618.229812337876,105,98,7,93.3,2
+Product_056,Regular Intermittent,High,4222.329840405107,137,129,8,94.2,14
+Product_057,Regular Intermittent,High,4436.110761516464,113,105,8,92.9,1
+Product_058,Regular Intermittent,High,3744.690214523263,127,119,8,93.7,19
+Product_059,New SKU (< 1.25yr),Low,6173.446680410235,56,53,3,94.6,8
+Product_060,Regular Intermittent,High,3993.647677018833,109,102,7,93.6,1
+Product_061,Regular Intermittent,High,5520.3889761079845,144,136,8,94.4,15
+Product_062,Regular Intermittent,High,2978.7318442149526,79,75,4,94.9,16
+Product_063,Seasonal with Trend,High,3400.195162372164,133,125,8,94.0,18
+Product_064,Regular Intermittent,High,3385.1896880947575,112,104,8,92.9,1
+Product_065,Seasonal with Trend,High,7083.066053881762,122,114,8,93.4,7
+Product_066,Seasonal with Trend,High,8568.696961683829,110,102,8,92.7,3
+Product_067,Regular Intermittent,Medium,3358.4655265439264,145,137,8,94.5,28
+Product_068,New SKU (< 1.25yr),Low,5330.1695473195105,55,52,3,94.5,19
+Product_069,Seasonal with Trend,High,6339.019649973706,128,120,8,93.8,21
+Product_070,Seasonal with Trend,High,4581.6197339674845,123,115,8,93.5,8
+Product_071,Seasonal with Trend,High,10983.146840987341,109,102,7,93.6,1
+Product_072,Seasonal without Trend,High,4816.131430580832,68,64,4,94.1,9
+Product_073,Non-Seasonal and No Trend,Low,6516.2122107505975,71,67,4,94.4,10
+Product_074,Seasonal with Trend,High,9962.466895128724,125,117,8,93.6,2
+Product_075,Seasonal without Trend,High,6723.493730846888,99,92,7,92.9,5
+Product_076,Seasonal with Trend,High,4708.275454414638,129,121,8,93.8,14
+Product_077,Regular Intermittent,High,4825.524176030356,94,87,7,92.6,3
+Product_078,Seasonal with Trend,High,2996.6179092270145,140,132,8,94.3,21
+Product_079,Seasonal with Trend,High,6055.55873283176,93,86,7,92.5,2
+Product_080,Seasonal with Trend,High,4616.593198962493,142,134,8,94.4,12
+Product_081,Seasonal without Trend,High,7189.895438074288,88,81,7,92.0,12
+Product_082,Intermittent,Low,2662.708857450247,87,80,7,92.0,13
+Product_083,Seasonal with Trend,High,3604.118893478003,150,142,8,94.7,32
+Product_084,New SKU (< 1.25yr),Low,2577.9857609521487,55,52,3,94.5,11
+Product_085,Regular Intermittent,High,5432.281552090689,67,63,4,94.0,1
+Product_086,Seasonal without Trend,High,5993.293884391907,79,75,4,94.9,12
+Product_087,Regular Intermittent,High,3737.276733457933,66,62,4,93.9,6
+Product_088,Intermittent,Medium,3875.601879679191,70,66,4,94.3,11
+Product_089,Regular Intermittent,Low,4320.265225800007,85,79,6,92.9,16
+Product_090,Regular Intermittent,High,5222.709608500498,145,137,8,94.5,3
+Product_091,Regular Intermittent,Medium,4872.182529287479,73,69,4,94.5,7
+Product_092,Regular Intermittent,Low,5135.458319903649,83,79,4,95.2,4
+Product_093,Seasonal with Trend,High,7748.637024758598,152,144,8,94.7,10
+Product_094,Regular Intermittent,High,4571.774866439433,107,100,7,93.5,2
+Product_095,Non-Seasonal and No Trend,Medium,7191.285540335024,96,89,7,92.7,17
+Product_096,New SKU (< 1.25yr),Low,5138.9067466307815,32,30,2,93.8,2
+Product_097,Regular Intermittent,High,4472.616613335747,115,107,8,93.0,1
+Product_098,Seasonal without Trend,Medium,7937.15913020372,88,81,7,92.0,16
+Product_099,Non-Seasonal and No Trend,Low,3997.352156859686,76,72,4,94.7,5
+Product_100,Regular Intermittent,High,4998.54332441849,111,103,8,92.8,2
+Product_101,Regular Intermittent,High,3793.3559617227675,133,125,8,94.0,3
+Product_102,New SKU (< 1.25yr),Low,3606.9927041068727,49,46,3,93.9,17
+Product_103,New SKU (< 1.25yr),Low,1777.317118290082,54,51,3,94.4,10
+Product_104,Seasonal with Trend,High,4072.228033703787,66,62,4,93.9,8
+Product_105,Regular Intermittent,High,3753.008496575286,70,66,4,94.3,12
+Product_106,Seasonal without Trend,High,7238.694479495194,113,105,8,92.9,1
+Product_107,Seasonal with Trend,High,8298.431495132138,120,112,8,93.3,2
+Product_108,Seasonal with Trend,High,5314.586817512666,118,110,8,93.2,2
+Product_109,Regular Intermittent,High,3694.5934313724974,131,123,8,93.9,5
+Product_110,Regular Intermittent,High,6887.470036193873,116,108,8,93.1,2
+Product_111,Regular Intermittent,Medium,5148.160120191055,144,136,8,94.4,35
+Product_112,Seasonal with Trend,High,6492.081189110857,150,142,8,94.7,22
+Product_113,Regular Intermittent,Low,4437.63384687374,75,71,4,94.7,7
+Product_114,Seasonal with Trend,High,4291.234778373841,142,134,8,94.4,12
+Product_115,Seasonal without Trend,High,5343.411869093934,146,138,8,94.5,15
+Product_116,Seasonal with Trend,High,9644.68885332406,138,130,8,94.2,12
+Product_117,Seasonal without Trend,High,3945.570029762973,132,124,8,93.9,8
+Product_118,New SKU (< 1.25yr),Low,3683.5653314659244,43,40,3,93.0,5
+Product_119,Regular Intermittent,High,4816.8926131627595,108,101,7,93.5,0
+Product_120,New SKU (< 1.25yr),Low,3276.3142151432626,30,29,1,96.7,6
+Product_121,Seasonal with Trend,High,4629.69758395672,124,116,8,93.5,3
+Product_122,Regular Intermittent,High,4704.335115075663,143,135,8,94.4,4
+Product_123,New SKU (< 1.25yr),Low,4110.925434209681,55,52,3,94.5,2
+Product_124,Seasonal with Trend,High,4807.772921245966,114,106,8,93.0,3
+Product_125,Seasonal with Trend,High,6322.648986823696,123,115,8,93.5,6
+Product_126,Regular Intermittent,High,5583.428962715655,144,136,8,94.4,3
+Product_127,Regular Intermittent,Low,3178.079799362732,86,79,7,91.9,18
+Product_128,New SKU (< 1.25yr),Low,3339.6232521753745,43,40,3,93.0,2
+Product_129,Seasonal with Trend,High,7445.824757234191,133,125,8,94.0,17
+Product_130,Seasonal with Trend,High,6957.429975344596,118,110,8,93.2,3
+Product_131,Regular Intermittent,High,2795.5432290643207,150,142,8,94.7,18
+Product_132,New SKU (< 1.25yr),Medium,6384.74258311321,55,52,3,94.5,4
+Product_133,Seasonal with Trend,High,6562.474234341101,117,109,8,93.2,1
+Product_134,Seasonal with Trend,High,3917.0551134667708,83,79,4,95.2,11
+Product_135,Regular Intermittent,Medium,4160.92753908849,97,90,7,92.8,9
+Product_136,Regular Intermittent,High,2310.858004024747,125,117,8,93.6,7
+Product_137,Intermittent,Low,3655.8143331429183,80,76,4,95.0,9
+Product_138,Regular Intermittent,Medium,3747.868601006107,135,127,8,94.1,27
+Product_139,Seasonal with Trend,High,10016.26588076896,111,103,8,92.8,4
+Product_140,Seasonal with Trend,High,8180.736446462716,86,79,7,91.9,11
+Product_141,New SKU (< 1.25yr),Low,4607.189801617721,39,36,3,92.3,14
+Product_142,Regular Intermittent,Low,3500.13576076734,141,133,8,94.3,28
+Product_143,Seasonal without Trend,Medium,6459.728534281199,91,84,7,92.3,13
+Product_144,Regular Intermittent,Low,3817.681447753881,84,79,5,94.0,5
+Product_145,Seasonal with Trend,High,7993.815359281436,127,119,8,93.7,12
+Product_146,Regular Intermittent,High,4856.855101871617,154,146,8,94.8,11
+Product_147,New SKU (< 1.25yr),Low,3184.4959482922195,31,30,1,96.8,4
+Product_148,Non-Seasonal and No Trend,Low,5183.618367618186,75,71,4,94.7,4
+Product_149,Seasonal with Trend,High,4796.482331956556,125,117,8,93.6,6
+Product_150,Regular Intermittent,High,5507.561971270552,143,135,8,94.4,4
