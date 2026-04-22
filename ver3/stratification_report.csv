@@ -1,12 +1,12 @@
-forecast_score,class,vol_pct_of_total,avg_outlier_count,avg_normal_weeks,sku_count
-High,Seasonal with Trend,41.09,10.3,115.0,48
-High,Regular Intermittent,21.9,6.8,105.4,39
-High,Seasonal without Trend,5.22,11.4,84.0,7
-Low,New SKU (< 1.25yr),12.16,7.3,37.6,24
-Low,Regular Intermittent,6.44,15.0,98.0,13
-Low,Non-Seasonal and No Trend,4.85,6.4,70.0,7
-Low,Intermittent,0.47,11.0,76.0,1
-Low,Seasonal without Trend,0.27,34.0,142.0,1
-Medium,Seasonal without Trend,3.72,14.5,85.8,4
-Medium,Regular Intermittent,2.36,23.0,124.2,4
-Medium,New SKU (< 1.25yr),1.51,5.0,53.0,2
+forecast_score,class,vol_pct_of_total,volume_per_sku,avg_outlier_count,avg_normal_weeks,sku_count
+High,Seasonal with Trend,41.09,6593.28,10.3,115.0,48
+High,Regular Intermittent,21.9,4324.77,6.8,105.4,39
+High,Seasonal without Trend,5.22,5745.76,11.4,84.0,7
+Low,New SKU (< 1.25yr),12.16,3903.18,7.3,37.6,24
+Low,Regular Intermittent,6.44,3818.57,15.0,98.0,13
+Low,Non-Seasonal and No Trend,4.85,5341.36,6.4,70.0,7
+Low,Intermittent,0.47,3655.81,11.0,76.0,1
+Low,Seasonal without Trend,0.27,2052.8,34.0,142.0,1
+Medium,Seasonal without Trend,3.72,7169.75,14.5,85.8,4
+Medium,Regular Intermittent,2.36,4537.78,23.0,124.2,4
+Medium,New SKU (< 1.25yr),1.51,5813.85,5.0,53.0,2
