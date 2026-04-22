@@ -196,7 +196,7 @@ def get_final_analysis_summary(df):
 
 
 
-def get_portfolio_stratification_report_v2(df):
+def get_portfolio_stratification_report(df):
     """
     Summarises the portfolio by Forecast Score and Pattern Class.
     Includes Volume per SKU to identify 'Heavy Hitters'.
