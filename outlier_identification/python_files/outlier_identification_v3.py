@@ -212,16 +212,9 @@ def get_final_analysis_summary(df):
 
 def get_portfolio_stratification_report(df):
     """
-   Class A + Low Forecastability: These are your "Danger" SKUs. 
-                                They drive 80% of your business but are chaotic. 
-                                These deserve a manual review of every outlier.
-    
-    Class D + High Outlier Count: These are "Noise." Even if they have 10 outliers each, 
-                                    they only represent 1% of your volume. Use 5 MAD here to stop them 
-                                    from cluttering your dashboard.
-    
-    Volume per SKU in Class A: This will tell you if your 80% volume is driven by a few "Super-SKUs" 
-                                or a large group of high-performers.
+    The "Workhorses": High sku_count + High total_vol_segment + High forecast_score. This is where your business lives. Keep these automated.
+    The "Troublemakers": High sku_count + High total_vol_segment + Low forecast_score. These are thousands of items that are all chaotic. This is where you need to check if your outlier thresholds (3 vs 5 MAD) are too sensitive.
+    The "Critical Few": Low sku_count + High total_vol_segment. Even if there are only 50 SKUs, if they represent 20% of your volume, they deserve a custom manual review of their outliers every week.
     """
     # 1. Get SKU-level metrics (removing the time dimension)
     sku_level = df.groupby('series_id').agg({

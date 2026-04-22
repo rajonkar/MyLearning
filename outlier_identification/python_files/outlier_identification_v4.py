@@ -245,8 +245,16 @@ def get_final_analysis_summary(df):
 
 def get_portfolio_stratification_report(df):
     """
-    Summarises the portfolio by ABC Class, Forecast Score, and Pattern Class.
-    ABC logic: A=80%, B=95%, C=99%, D=100% of cumulative volume.
+     Class A + Low Forecastability: These are your "Danger" SKUs. 
+                                They drive 80% of your business but are chaotic. 
+                                These deserve a manual review of every outlier.
+    
+    Class D + High Outlier Count: These are "Noise." Even if they have 10 outliers each, 
+                                    they only represent 1% of your volume. Use 5 MAD here to stop them 
+                                    from cluttering your dashboard.
+    
+    Volume per SKU in Class A: This will tell you if your 80% volume is driven by a few "Super-SKUs" 
+                                or a large group of high-performers.
     """
     # 1. Aggregate at SKU level
     sku_level = df.groupby('series_id').agg({
