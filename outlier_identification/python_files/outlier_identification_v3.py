@@ -218,7 +218,7 @@ def get_portfolio_stratification_report(df):
         High Vol per SKU + Low Forecastability: These are your most dangerous items.
                                          They move a lot of money but are "chaotic." 
                                          One bad forecast here results in massive lost sales or excess stock.
-            The "Heavy Hitters": A group with a high Volume per SKU means each item is a "blockbuster." 
+        The "Heavy Hitters": A group with a high Volume per SKU means each item is a "blockbuster." 
                                 If these are also in the Low Forecastability class, 
                                 they are your highest risk items because every individual mistake is expensive.
         Low Vol per SKU + High Outlier Count: These are your "noisy long-tail" items. 
