@@ -80,6 +80,11 @@ df_final = prepare_and_join_granular(sales_df, events_df, promos_df)
 print(df_final.head(5))
 
 
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.seasonal import STL
+from scipy.stats import f
+
 def detect_outliers_n_segment(df, multiplier=3):
     """
     Final Master System:
@@ -112,16 +117,27 @@ def detect_outliers_n_segment(df, multiplier=3):
         is_intermittent = zero_pct > 0.30
 
         # 2. BASELINE DECOMPOSITION & PATTERN CLASSIFICATION
+        # Initialize F-ratio columns
+        group['f_ratio_trend'] = np.nan
+        group['f_ratio_season'] = np.nan
+
         if n >= 65:
             try:
                 res = STL(group['sales'], period=52, robust=True, trend=105, seasonal=13).fit()
                 group['trend'], group['seasonal'] = res.trend, res.seasonal
                 group['baseline'] = res.trend + res.seasonal
+                group['resid'] = res.resid
                 
                 var_resid = res.resid.var()
                 if var_resid > 0:
+                    # F-TEST (Restricted Model vs Unrestricted Model)
                     f_s = (res.resid + res.seasonal).var() / var_resid
                     f_t = (res.resid + res.trend).var() / var_resid
+                    
+                    # Store Raw F-Values
+                    group['f_ratio_season'] = round(f_s, 3)
+                    group['f_ratio_trend'] = round(f_t, 3)
+                    
                     has_s = (1 - f.cdf(f_s, n-1, n-1)) < 0.01
                     has_t = (1 - f.cdf(f_t, n-1, n-1)) < 0.01
                     
@@ -140,6 +156,7 @@ def detect_outliers_n_segment(df, multiplier=3):
         else:
             group['baseline'] = group['sales'].rolling(window=8, center=True, min_periods=1).median()
             group['class'] = 'New SKU (< 1.25yr)'
+            group['resid'] = group['sales'] - group['baseline']
 
         # 3. FORECASTABILITY (CV on Normal Days only)
         normal_mask = (group['promo_type'] == 'Normal')
@@ -153,7 +170,7 @@ def detect_outliers_n_segment(df, multiplier=3):
             group['forecast_score'] = 'No Normal History'
 
         # 4. BUCKETED OUTLIER DETECTION
-        group['resid'] = group['sales'] - group['baseline']
+        # (resid calculation ensures we use STL resid for mature SKUs)
         group['is_outlier'] = False
         
         for etype in group['promo_type'].unique():
@@ -177,6 +194,7 @@ def detect_outliers_n_segment(df, multiplier=3):
         all_results.append(group)
         
     return pd.concat(all_results)
+
 
 def get_final_analysis_summary(df):
     """Summarises analysis and includes week-type counts and percentages."""
