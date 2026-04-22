@@ -18,8 +18,8 @@ import os
 import sys
 from statsmodels.tsa.seasonal import STL
 from pathlib import Path
+from scipy.stats import f
 
-import pandas as pd
 
 
 
@@ -38,68 +38,118 @@ promos_df= pd.read_csv('outlier_identification/promos.csv')
 
 
 
-def detect_outliers_for_catalog(df, multiplier=3):
+def prepare_and_join_granular(sales_df, events_df, promos_df):
+    sales_df['week_start'] = pd.to_datetime(sales_df['week_start'])
+    sales_df['week_end'] = sales_df['week_start'] + pd.Timedelta(days=6)
+    
+    # Initialize with 'Normal'
+    sales_df['promo_type'] = 'Normal'
+
+    # 1. Map Events first
+    for _, row in events_df.iterrows():
+        mask = (sales_df['week_start'] <= pd.to_datetime(row['event_date'])) & \
+               (sales_df['week_end'] >= pd.to_datetime(row['event_date']))
+        sales_df.loc[mask, 'promo_type'] = row['event']
+
+    # 2. Map Promos and CHECK FOR OVERLAPS
+    for _, row in promos_df.iterrows():
+        mask = (sales_df['week_start'] <= pd.to_datetime(row['end_date'])) & \
+               (sales_df['week_end'] >= pd.to_datetime(row['start_date']))
+        
+        # If the week is still 'Normal', just assign the promo type
+        normal_mask = mask & (sales_df['promo_type'] == 'Normal')
+        sales_df.loc[normal_mask, 'promo_type'] = row['type']
+        
+        # If the week ALREADY has an event, combine the names
+        overlap_mask = mask & (sales_df['promo_type'] != 'Normal') & (sales_df['promo_type'] != row['type'])
+        sales_df.loc[overlap_mask, 'promo_type'] = sales_df.loc[overlap_mask, 'promo_type'] + " + " + row['type']
+
+    return sales_df
+
+# Run the join
+df_final = prepare_and_join_granular(sales_df, events_df, promos_df)
+
+print(df_final.head(5))
+
+
+
+
+
+
+def detect_outliers_n_segment(df, multiplier=3):
+    """
+    Final Master System:
+    - Adaptive History (STL vs Rolling)
+    - Granular Promo Buckets (BOGO, Overlaps)
+    - F-Test Pattern Classification
+    - Intermittent & Regular Intermittent Detection
+    - 1-Year Volume & Forecastability Analysis
+    """
     all_results = []
+    max_date = pd.to_datetime(df['week_start']).max()
+    one_year_ago = max_date - pd.DateOffset(years=1)
     
     for sid, group in df.groupby('series_id'):
         group = group.sort_values('week_start').copy()
         n = len(group)
+        
+        # 1. VOLUME & ZERO ANALYSIS (For Intermittent Classification)
+        last_year = group[group['week_start'] >= one_year_ago]
+        group['last_1yr_sales_vol'] = last_year['sales'].sum()
         group['history_count'] = n
         
-        # 1. BASELINE SELECTION & PATTERN CLASSIFICATION
-        if n >= 65: 
+        zero_pct = (last_year['sales'] == 0).mean() if len(last_year) > 0 else 0
+        is_intermittent = zero_pct > 0.30
+
+        # 2. BASELINE DECOMPOSITION & PATTERN CLASSIFICATION
+        if n >= 65:
             try:
                 res = STL(group['sales'], period=52, robust=True, trend=105, seasonal=13).fit()
+                group['trend'], group['seasonal'] = res.trend, res.seasonal
                 group['baseline'] = res.trend + res.seasonal
                 
                 var_resid = res.resid.var()
                 if var_resid > 0:
-                    f_trend = (res.resid + res.trend).var() / var_resid
-                    f_season = (res.resid + res.seasonal).var() / var_resid
-                    p_trend = 1 - f.cdf(f_trend, n-1, n-1)
-                    p_season = 1 - f.cdf(f_season, n-1, n-1)
+                    f_s = (res.resid + res.seasonal).var() / var_resid
+                    f_t = (res.resid + res.trend).var() / var_resid
+                    has_s = (1 - f.cdf(f_s, n-1, n-1)) < 0.01
+                    has_t = (1 - f.cdf(f_t, n-1, n-1)) < 0.01
                     
-                    has_trend = p_trend < 0.01
-                    has_season = p_season < 0.01
-                    
-                    if has_trend and has_season: group['class'] = 'Seasonal with Trend'
-                    elif has_season: group['class'] = 'Seasonal without Trend'
-                    elif has_trend: group['class'] = 'Non-Seasonal with Trend'
-                    else: group['class'] = 'Non-Seasonal and No Trend'
-                    
-                    # Store Stats
-                    group['f_ratio_trend'] = round(f_trend, 3)
-                    group['f_ratio_season'] = round(f_season, 3)
+                    if is_intermittent:
+                        group['class'] = 'Regular Intermittent' if has_s else 'Intermittent'
+                    else:
+                        if has_t and has_s: group['class'] = 'Seasonal with Trend'
+                        elif has_s: group['class'] = 'Seasonal without Trend'
+                        elif has_t: group['class'] = 'Non-Seasonal with Trend'
+                        else: group['class'] = 'Non-Seasonal and No Trend'
                 else:
                     group['class'] = 'Stable'
             except:
                 group['baseline'] = group['sales'].rolling(window=12, center=True, min_periods=1).median()
-                group['class'] = 'Fallback'
+                group['class'] = 'Fallback (Rolling)'
         else:
             group['baseline'] = group['sales'].rolling(window=8, center=True, min_periods=1).median()
-            group['class'] = 'New SKU'
+            group['class'] = 'New SKU (< 1.25yr)'
 
-        # 2. FORECASTABILITY SCORE (The "Stability" Check)
-        # We look at 'Normal' days only to see the base noise
-        normal_resid = group[group['promo_type'] == 'Normal']['sales'] - group[group['promo_type'] == 'Normal']['baseline']
-        avg_sales = group[group['promo_type'] == 'Normal']['sales'].mean()
-        
-        if avg_sales > 0:
-            noise_cv = normal_resid.std() / avg_sales
+        # 3. FORECASTABILITY (CV on Normal Days only)
+        normal_mask = (group['promo_type'] == 'Normal')
+        if normal_mask.any():
+            norm_data = group[normal_mask]
+            norm_resid = norm_data['sales'] - (norm_data.get('baseline', norm_data['sales'].median()))
+            noise_cv = norm_resid.std() / (norm_data['sales'].mean() + 1e-9)
             group['noise_cv'] = round(noise_cv, 3)
-            if noise_cv < 0.2: group['forecast_score'] = 'High (Stable)'
-            elif noise_cv < 0.5: group['forecast_score'] = 'Medium (Buffer)'
-            else: group['forecast_score'] = 'Low (Chaotic)'
+            group['forecast_score'] = 'High' if noise_cv < 0.2 else 'Medium' if noise_cv < 0.5 else 'Low'
         else:
-            group['noise_cv'] = np.nan
-            group['forecast_score'] = 'Inactive'
+            group['forecast_score'] = 'No Normal History'
 
-        # 3. OUTLIER DETECTION (Same as before)
+        # 4. BUCKETED OUTLIER DETECTION (MAD per promo_type)
         group['resid'] = group['sales'] - group['baseline']
         group['is_outlier'] = False
+        
         for etype in group['promo_type'].unique():
             mask = (group['promo_type'] == etype)
             subset = group.loc[mask, 'resid']
+            
             if len(subset) >= 2:
                 med_l = subset.median()
                 mad = (subset - med_l).abs().median()
@@ -110,16 +160,24 @@ def detect_outliers_for_catalog(df, multiplier=3):
             
             group.loc[mask, 'upper_limit'] = group.loc[mask, 'baseline'] + med_l + thresh
             group.loc[mask, 'lower_limit'] = group.loc[mask, 'baseline'] + med_l - thresh
-            group.loc[mask & ((group['resid'] > med_l + thresh) | (group['resid'] < med_l - thresh)), 'is_outlier'] = True
+            
+            out_mask = (group['resid'] > med_l + thresh) | (group['resid'] < med_l - thresh)
+            group.loc[mask & out_mask, 'is_outlier'] = True
             
         all_results.append(group)
-    
+        
     return pd.concat(all_results)
+
+def get_final_analysis_summary(df):
+    """Summarises the 8M rows into a scannable management report."""
+    summary = df[['series_id', 'class', 'forecast_score', 'last_1yr_sales_vol', 'history_count']].drop_duplicates()
+    outlier_counts = df.groupby('series_id')['is_outlier'].sum().reset_index(name='outlier_count')
+    return summary.merge(outlier_counts, on='series_id')
 
 
 # Execution
 # final_df = detect_outliers_for_catalog(sales_df)
-final_df = detect_outliers_for_catalog(df_final)
+final_df = detect_outliers_n_segment(df_final)
 
 print(final_df.head(5))
 
@@ -130,4 +188,4 @@ filepath = Path("ver3/final_output.csv")
 filepath.parent.mkdir(parents=True, exist_ok=True)
 final_df.to_csv(filepath, index=False)
 
-print(final_df[['series_id', 'history_count', 'f_ratio_trend', 'class']].drop_duplicates())
+# print(final_df[['series_id', 'history_count', 'f_ratio_trend', 'class']].drop_duplicates())

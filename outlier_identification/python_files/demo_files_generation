@@ -12,60 +12,78 @@ print(os.getcwd())
 print(sys.executable) # proves the venv is used
 
 
-# You can programmatically verify activation by running a simple command within your Python script
-#If this returns True, you are running inside a virtual environment
+import pandas as pd
+import numpy as np
 
-print(sys.prefix != sys.base_prefix)
-
-def generate_retail_sample(num_series=100, weeks=105):
-    # Create a date range starting from a Monday
-    dates = pd.date_range(start='2023-01-02', periods=weeks, freq='W-MON')
-    
-    # 1. Create Sales Data
+def generate_retail_sample(num_series=150):
+    # Maximum window: 3 years (156 weeks)
+    max_weeks = 156
+    full_dates = pd.date_range(start='2021-01-04', periods=max_weeks, freq='W-MON')
     all_series = []
+    
     for i in range(num_series):
         sid = f'Product_{i+1:03d}'
         
-        # Base components: Trend + Yearly Seasonality
-        trend = np.linspace(100 + np.random.randint(-20, 20), 150, weeks)
-        seasonality = 25 * np.sin(2 * np.pi * np.arange(weeks) / 52)
-        noise = np.random.normal(0, 4, weeks)
+        # 1. Randomize History Length
+        history_choice = np.random.choice(['new', 'mid', 'full'], p=[0.2, 0.3, 0.5])
+        weeks = {'new': np.random.randint(20, 60), 
+                 'mid': np.random.randint(65, 100), 
+                 'full': np.random.randint(105, 156)}[history_choice]
+        current_dates = full_dates[-weeks:]
         
-        sales = trend + seasonality + noise
+        # 2. Assign Pattern Type
+        # Types: Continuous, Intermittent (Random Zeros), Regular Intermittent (Seasonal Zeros)
+        pattern = np.random.choice(['continuous', 'intermittent', 'regular_intermittent'], p=[0.5, 0.25, 0.25])
         
-        # Inject "Expected" Spikes (Black Friday - Week 47ish)
-        sales[46:48] *= 4.0
-        sales[46+52:48+52] *= 4.0
+        # Base components
+        base_level = np.random.randint(50, 150)
+        trend = np.linspace(base_level, base_level * np.random.uniform(0.8, 1.5), weeks)
+        phase = np.random.randint(0, 52)
+        seasonality = 30 * np.sin(2 * np.pi * (np.arange(weeks) + phase) / 52)
+        sales = trend + seasonality + np.random.normal(0, 5, weeks)
+        sales = sales.clip(min=0)
+
+        # 3. Apply Intermittency
+        if pattern == 'intermittent':
+            # Randomly zero out 40% of the data
+            mask = np.random.random(weeks) < 0.40
+            sales[mask] = 0
+        elif pattern == 'regular_intermittent':
+            # Zero out sales during the "low" phase of the sine wave (Seasonal Zeros)
+            # This simulates products that only sell in specific seasons
+            sales[seasonality < -5] = 0
+            
+        # 4. Inject "Expected" Spikes (Black Friday - Week 47ish)
+        for year_idx in [46, 46+52, 46+104]:
+            if year_idx < weeks:
+                sales[-(weeks-year_idx)] *= 3.5
         
-        # Inject BOGO "Expected" Spikes (Week 20 & 70)
-        sales[20] *= 2.0
-        sales[70] *= 2.1
-        
-        # Inject HIDDEN OUTLIERS to be detected
-        # High-side: Unexpected viral peak (No promo)
-        sales[85] += 600 
-        # Low-side: Supply chain stockout (No promo)
-        sales[30] = sales[30] * 0.05 
-        
-        temp_df = pd.DataFrame({'week_start': dates, 'sales': sales.clip(min=0)})
+        # 5. Inject HIDDEN OUTLIERS
+        # High-side: Random viral peak
+        high_idx = np.random.randint(0, weeks)
+        sales[high_idx] += 500
+        # Low-side: Stockout (on a week that should have had sales)
+        active_indices = np.where(sales > 20)[0]
+        if len(active_indices) > 0:
+            low_idx = np.random.choice(active_indices)
+            sales[low_idx] *= 0.05
+
+        temp_df = pd.DataFrame({'week_start': current_dates, 'sales': sales})
         temp_df['series_id'] = sid
         all_series.append(temp_df)
     
     sales_df = pd.concat(all_series).reset_index(drop=True)
     
-    # 2. Create Events File (Black Friday always shifts)
+    # Events & Promos (Fixed Dates)
     events_df = pd.DataFrame([
-        {'event': 'Black Friday', 'event_date': '2023-11-24'},
-        {'event': 'Black Friday', 'event_date': '2024-11-29'},
-        {'event': 'Memorial Day', 'event_date': '2023-05-29'},
-        {'event': 'Memorial Day', 'event_date': '2024-05-27'}
+        {'event': 'Black Friday', 'event_date': '2021-11-26'},
+        {'event': 'Black Friday', 'event_date': '2022-11-25'},
+        {'event': 'Black Friday', 'event_date': '2023-11-24'}
     ])
     
-    # 3. Create Promos File
     promos_df = pd.DataFrame([
-        {'type': 'BOGO', 'start_date': '2023-05-20', 'end_date': '2023-05-25'},
-        {'type': 'BOGO', 'start_date': '2024-05-04', 'end_date': '2024-05-12'},
-        {'type': 'Disc_50', 'start_date': '2024-08-10', 'end_date': '2024-08-15'}
+        {'type': 'BOGO', 'start_date': '2022-05-15', 'end_date': '2022-05-25'},
+        {'type': 'BOGO', 'start_date': '2023-05-15', 'end_date': '2023-05-25'}
     ])
     
     return sales_df, events_df, promos_df
@@ -78,112 +96,194 @@ sales_df.to_csv('outlier_identification/sales.csv', index=False)
 events_df.to_csv('outlier_identification/events.csv', index=False)
 promos_df.to_csv('outlier_identification/promos.csv', index=False)
 
-print(f"Generated {sales_df['series_id'].nunique()} series with {len(sales_df)} total rows.")
+print(f"Generated {sales_df['series_id'].nunique()} series with Intermittent and Regular Intermittent patterns.")
 
 
 
 
-# generate sales with upto 156 weesk of data, some less than 1 year, some upto two year and some upto three year
 
 
 
-import pandas as pd
-import numpy as np
 
-def generate_retail_sample(num_series=100):
-    # Maximum potential window: 3 years (156 weeks)
-    max_weeks = 156
-    full_dates = pd.date_range(start='2021-01-04', periods=max_weeks, freq='W-MON')
+
+
+
+
+
+
+# # below generates only 3 years data
+# # You can programmatically verify activation by running a simple command within your Python script
+# #If this returns True, you are running inside a virtual environment
+
+# print(sys.prefix != sys.base_prefix)
+
+# def generate_retail_sample(num_series=100, weeks=105):
+#     # Create a date range starting from a Monday
+#     dates = pd.date_range(start='2023-01-02', periods=weeks, freq='W-MON')
     
-    all_series = []
-    
-    for i in range(num_series):
-        sid = f'Product_{i+1:03d}'
+#     # 1. Create Sales Data
+#     all_series = []
+#     for i in range(num_series):
+#         sid = f'Product_{i+1:03d}'
         
-        # --- 1. Randomize History Length ---
-        # Mix of: New (<65 weeks), Mid (65-104), and Full (105-156)
-        history_choice = np.random.choice(['new', 'mid', 'full'], p=[0.2, 0.3, 0.5])
-        if history_choice == 'new':
-            weeks = np.random.randint(10, 60)
-        elif history_choice == 'mid':
-            weeks = np.random.randint(65, 100)
-        else:
-            weeks = np.random.randint(105, 156)
+#         # Base components: Trend + Yearly Seasonality
+#         trend = np.linspace(100 + np.random.randint(-20, 20), 150, weeks)
+#         seasonality = 25 * np.sin(2 * np.pi * np.arange(weeks) / 52)
+#         noise = np.random.normal(0, 4, weeks)
+        
+#         sales = trend + seasonality + noise
+        
+#         # Inject "Expected" Spikes (Black Friday - Week 47ish)
+#         sales[46:48] *= 4.0
+#         sales[46+52:48+52] *= 4.0
+        
+#         # Inject BOGO "Expected" Spikes (Week 20 & 70)
+#         sales[20] *= 2.0
+#         sales[70] *= 2.1
+        
+#         # Inject HIDDEN OUTLIERS to be detected
+#         # High-side: Unexpected viral peak (No promo)
+#         sales[85] += 600 
+#         # Low-side: Supply chain stockout (No promo)
+#         sales[30] = sales[30] * 0.05 
+        
+#         temp_df = pd.DataFrame({'week_start': dates, 'sales': sales.clip(min=0)})
+#         temp_df['series_id'] = sid
+#         all_series.append(temp_df)
+    
+#     sales_df = pd.concat(all_series).reset_index(drop=True)
+    
+#     # 2. Create Events File (Black Friday always shifts)
+#     events_df = pd.DataFrame([
+#         {'event': 'Black Friday', 'event_date': '2023-11-24'},
+#         {'event': 'Black Friday', 'event_date': '2024-11-29'},
+#         {'event': 'Memorial Day', 'event_date': '2023-05-29'},
+#         {'event': 'Memorial Day', 'event_date': '2024-05-27'}
+#     ])
+    
+#     # 3. Create Promos File
+#     promos_df = pd.DataFrame([
+#         {'type': 'BOGO', 'start_date': '2023-05-20', 'end_date': '2023-05-25'},
+#         {'type': 'BOGO', 'start_date': '2024-05-04', 'end_date': '2024-05-12'},
+#         {'type': 'Disc_50', 'start_date': '2024-08-10', 'end_date': '2024-08-15'}
+#     ])
+    
+#     return sales_df, events_df, promos_df
+
+# # Generate the data
+# sales_df, events_df, promos_df = generate_retail_sample()
+
+# # Save for your notebook
+# sales_df.to_csv('outlier_identification/sales.csv', index=False)
+# events_df.to_csv('outlier_identification/events.csv', index=False)
+# promos_df.to_csv('outlier_identification/promos.csv', index=False)
+
+# print(f"Generated {sales_df['series_id'].nunique()} series with {len(sales_df)} total rows.")
+
+
+
+
+# # generate sales with upto 156 weesk of data, some less than 1 year, some upto two year and some upto three year
+
+
+
+# import pandas as pd
+# import numpy as np
+
+# def generate_retail_sample(num_series=100):
+#     # Maximum potential window: 3 years (156 weeks)
+#     max_weeks = 156
+#     full_dates = pd.date_range(start='2021-01-04', periods=max_weeks, freq='W-MON')
+    
+#     all_series = []
+    
+#     for i in range(num_series):
+#         sid = f'Product_{i+1:03d}'
+        
+#         # --- 1. Randomize History Length ---
+#         # Mix of: New (<65 weeks), Mid (65-104), and Full (105-156)
+#         history_choice = np.random.choice(['new', 'mid', 'full'], p=[0.2, 0.3, 0.5])
+#         if history_choice == 'new':
+#             weeks = np.random.randint(10, 60)
+#         elif history_choice == 'mid':
+#             weeks = np.random.randint(65, 100)
+#         else:
+#             weeks = np.random.randint(105, 156)
             
-        # Select the most recent 'weeks' of data
-        current_dates = full_dates[-weeks:]
+#         # Select the most recent 'weeks' of data
+#         current_dates = full_dates[-weeks:]
         
-        # --- 2. Randomize Patterns (for F-Test testing) ---
-        has_trend = np.random.choice([True, False])
-        has_season = np.random.choice([True, False])
+#         # --- 2. Randomize Patterns (for F-Test testing) ---
+#         has_trend = np.random.choice([True, False])
+#         has_season = np.random.choice([True, False])
         
-        # Base Level
-        base_level = np.random.randint(50, 200)
+#         # Base Level
+#         base_level = np.random.randint(50, 200)
         
-        # Trend component
-        if has_trend:
-            trend = np.linspace(base_level, base_level * np.random.uniform(1.2, 2.0), weeks)
-        else:
-            trend = np.full(weeks, base_level)
+#         # Trend component
+#         if has_trend:
+#             trend = np.linspace(base_level, base_level * np.random.uniform(1.2, 2.0), weeks)
+#         else:
+#             trend = np.full(weeks, base_level)
             
-        # Seasonal component (Sine wave)
-        if has_season:
-            # Shift phase so seasonality isn't identical for every SKU
-            phase = np.random.randint(0, 52)
-            seasonality = 30 * np.sin(2 * np.pi * (np.arange(weeks) + phase) / 52)
-        else:
-            seasonality = np.zeros(weeks)
+#         # Seasonal component (Sine wave)
+#         if has_season:
+#             # Shift phase so seasonality isn't identical for every SKU
+#             phase = np.random.randint(0, 52)
+#             seasonality = 30 * np.sin(2 * np.pi * (np.arange(weeks) + phase) / 52)
+#         else:
+#             seasonality = np.zeros(weeks)
             
-        noise = np.random.normal(0, 5, weeks)
-        sales = trend + seasonality + noise
+#         noise = np.random.normal(0, 5, weeks)
+#         sales = trend + seasonality + noise
         
-        # --- 3. Inject Events/Outliers ---
-        # Note: Indexing must be handled carefully for varying lengths
-        # Black Friday (Week 47ish of every year)
-        for year_idx in [46, 46+52, 46+104]:
-            if year_idx < weeks:
-                sales[-(weeks-year_idx)] *= 3.5
+#         # --- 3. Inject Events/Outliers ---
+#         # Note: Indexing must be handled carefully for varying lengths
+#         # Black Friday (Week 47ish of every year)
+#         for year_idx in [46, 46+52, 46+104]:
+#             if year_idx < weeks:
+#                 sales[-(weeks-year_idx)] *= 3.5
         
-        # High-side Outlier (Random location)
-        high_idx = np.random.randint(0, weeks)
-        sales[high_idx] += (sales.mean() * 5)
+#         # High-side Outlier (Random location)
+#         high_idx = np.random.randint(0, weeks)
+#         sales[high_idx] += (sales.mean() * 5)
         
-        # Low-side Outlier (Random location)
-        low_idx = np.random.randint(0, weeks)
-        sales[low_idx] *= 0.1
+#         # Low-side Outlier (Random location)
+#         low_idx = np.random.randint(0, weeks)
+#         sales[low_idx] *= 0.1
         
-        temp_df = pd.DataFrame({'week_start': current_dates, 'sales': sales.clip(min=0)})
-        temp_df['series_id'] = sid
-        all_series.append(temp_df)
+#         temp_df = pd.DataFrame({'week_start': current_dates, 'sales': sales.clip(min=0)})
+#         temp_df['series_id'] = sid
+#         all_series.append(temp_df)
     
-    sales_df = pd.concat(all_series).reset_index(drop=True)
+#     sales_df = pd.concat(all_series).reset_index(drop=True)
     
-    # 2. Events File (Fixed dates over 3 years)
-    events_df = pd.DataFrame([
-        {'event': 'Black Friday', 'event_date': '2021-11-26'},
-        {'event': 'Black Friday', 'event_date': '2022-11-25'},
-        {'event': 'Black Friday', 'event_date': '2023-11-24'},
-        {'event': 'Memorial Day', 'event_date': '2022-05-30'},
-        {'event': 'Memorial Day', 'event_date': '2023-05-29'}
-    ])
+#     # 2. Events File (Fixed dates over 3 years)
+#     events_df = pd.DataFrame([
+#         {'event': 'Black Friday', 'event_date': '2021-11-26'},
+#         {'event': 'Black Friday', 'event_date': '2022-11-25'},
+#         {'event': 'Black Friday', 'event_date': '2023-11-24'},
+#         {'event': 'Memorial Day', 'event_date': '2022-05-30'},
+#         {'event': 'Memorial Day', 'event_date': '2023-05-29'}
+#     ])
     
-    # 3. Promos File
-    promos_df = pd.DataFrame([
-        {'type': 'BOGO', 'start_date': '2022-05-15', 'end_date': '2022-05-25'},
-        {'type': 'BOGO', 'start_date': '2023-05-15', 'end_date': '2023-05-25'},
-        {'type': 'Disc_50', 'start_date': '2023-08-01', 'end_date': '2023-08-10'}
-    ])
+#     # 3. Promos File
+#     promos_df = pd.DataFrame([
+#         {'type': 'BOGO', 'start_date': '2022-05-15', 'end_date': '2022-05-25'},
+#         {'type': 'BOGO', 'start_date': '2023-05-15', 'end_date': '2023-05-25'},
+#         {'type': 'Disc_50', 'start_date': '2023-08-01', 'end_date': '2023-08-10'}
+#     ])
     
-    return sales_df, events_df, promos_df
+#     return sales_df, events_df, promos_df
 
-# Generate and save
-sales_df, events_df, promos_df = generate_retail_sample()
-print(f"Generated {sales_df['series_id'].nunique()} series with variable history lengths.")
-print(sales_df.groupby('series_id').size().describe())
+# # Generate and save
+# sales_df, events_df, promos_df = generate_retail_sample()
+# print(f"Generated {sales_df['series_id'].nunique()} series with variable history lengths.")
+# print(sales_df.groupby('series_id').size().describe())
 
 
-# Save for your notebook
-sales_df.to_csv('outlier_identification/sales.csv', index=False)
-events_df.to_csv('outlier_identification/events.csv', index=False)
-promos_df.to_csv('outlier_identification/promos.csv', index=False)
+# # Save for your notebook
+# sales_df.to_csv('outlier_identification/sales.csv', index=False)
+# events_df.to_csv('outlier_identification/events.csv', index=False)
+# promos_df.to_csv('outlier_identification/promos.csv', index=False)
 
