@@ -202,6 +202,9 @@ def get_portfolio_stratification_report(df):
     Includes Volume per SKU to identify 'Heavy Hitters'.
     Strategic Use of "Volume per SKU":
         High Vol per SKU + Low Forecastability: These are your most dangerous items. They move a lot of money but are "chaotic." One bad forecast here results in massive lost sales or excess stock.
+            The "Heavy Hitters": A group with a high Volume per SKU means each item is a "blockbuster." 
+                                If these are also in the Low Forecastability class, 
+                                they are your highest risk items because every individual mistake is expensive.
         Low Vol per SKU + High Outlier Count: These are your "noisy long-tail" items. They don't move much volume but they generate a lot of "false alarm" outlier alerts. You should likely ignore these or use a 5 MAD multiplier.
         High Vol per SKU + High Normal Weeks: These are your most efficient items. They are high volume, organic, and stable.
     """
@@ -227,7 +230,7 @@ def get_portfolio_stratification_report(df):
     # 3. Add Proportion and Volume per SKU metrics
     report['vol_pct_of_total'] = round((report['total_vol_segment'] / total_portfolio_vol) * 100, 2)
     # The 'Heavy Hitter' metric
-    report['volume_per_sku'] = round(report['total_vol_segment'] / report['sku_count'], 2)
+    report['avg_volume_per_sku'] = round(report['total_vol_segment'] / report['sku_count'], 2)
 
     # 4. Clean up and Format
     report['avg_outlier_count'] = report['avg_outlier_count'].round(1)
@@ -237,11 +240,12 @@ def get_portfolio_stratification_report(df):
     final_cols = [
         'forecast_score', 
         'class', 
+        'sku_count',
+        'total_vol_segment',
         'vol_pct_of_total', 
-        'volume_per_sku', 
+        'avg_volume_per_sku', 
         'avg_outlier_count', 
-        'avg_normal_weeks',
-        'sku_count'
+        'avg_normal_weeks'
     ]
     
     return report[final_cols].sort_values(['forecast_score', 'vol_pct_of_total'], ascending=[True, False])
