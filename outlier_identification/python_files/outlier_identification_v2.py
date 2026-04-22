@@ -9,7 +9,7 @@
 # modify the loop to iterate over specific event types instead of just a True/False flag.
 
 
-
+# In STL The trend parameter must be an odd integer and should be larger than (1.5 * period) / (1 - 1.5/seasonal).
 
 import pandas as pd
 import numpy as np
