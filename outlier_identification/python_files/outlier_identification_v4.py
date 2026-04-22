@@ -153,9 +153,9 @@ def detect_outliers_n_segment(df, multiplier=3):
                     group['stiffness_ratio'] = ratio
                     
                     # Add Interpretation
-                    if ratio < 0.35:
+                    if ratio < 0.45:
                         group['stiffness_interpretation'] = "Stiff (Ideal: Outliers forced to Resid)"
-                    elif ratio < 0.60:
+                    elif ratio < 0.70:
                         group['stiffness_interpretation'] = "Medium (Acceptable stability)"
                     else:
                         group['stiffness_interpretation'] = "Wavy (Warning: Baseline absorbing outliers)"
