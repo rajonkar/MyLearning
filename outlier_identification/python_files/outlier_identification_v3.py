@@ -308,3 +308,56 @@ If the Restriction is "Right" (Signal is noise):
     The F-ratio will be near 1. You fail to reject the Null. You conclude: "This is just random noise."
 
 """
+
+
+
+
+def verify_stl_stiffness(df):
+    """
+     Diagnostic to ensure the STL Baseline is not 'chasing' spikes.
+    Compares the volatility of the Baseline vs. the Raw Sales.
+    
+    Spot Checks: If you see a "Wavy" verdict, 
+        it means the trend=105 wasn't enough to stop the baseline from bulging during a BOGO. 
+        You might need to increase trend to 157.
+    Audit Outliers: If a SKU has Zero Outliers but a Wavy Baseline, it's a false negative. 
+                    The baseline grew to "swallow" the outlier.
+    Parameter Tuning: For your "Heavy Hitter" high-volume SKUs, you want this ratio to be as low as possible 
+                        to ensure your F-ratios and Outlier Limits are mathematically pure.
+
+    """
+    diag_results = []
+    
+    # We only run this for SKUs that used STL (history >= 65 weeks)
+    stl_skus = df[df['history_count'] >= 65]
+    
+    for sid, group in stl_skus.groupby('series_id'):
+        # 1. Calculate Standard Deviation (Volatility)
+        sales_vol = group['sales'].std()
+        base_vol = group['baseline'].std()
+        
+        # 2. Stiffness Ratio: (Baseline Volatility / Sales Volatility)
+        # Goal: A very low number (e.g., < 0.3)
+        stiffness_ratio = base_vol / sales_vol if sales_vol > 0 else 0
+        
+        # 3. Verdict
+        if stiffness_ratio < 0.35:
+            verdict = "Stiff (Perfect)"
+        elif stiffness_ratio < 0.55:
+            verdict = "Flexible (Acceptable)"
+        else:
+            verdict = "Wavy (Warning: Baseline is chasing spikes)"
+            
+        diag_results.append({
+            'series_id': sid,
+            'stiffness_ratio': round(stiffness_ratio, 3),
+            'verdict': verdict,
+            'sales_std': round(sales_vol, 2),
+            'baseline_std': round(base_vol, 2)
+        })
+        
+    return pd.DataFrame(diag_results).sort_values('stiffness_ratio', ascending=False)
+
+# Usage
+stiffness_report = verify_stl_stiffness(final_df)
+stiffness_report.to_csv("ver3/stl_stiffness_report.csv", index=False)
