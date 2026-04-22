@@ -3,14 +3,16 @@
 
 # logic explained below
 
-
-
+"""
+Audit: See if the outlier detection needs a 5 MAD multiplier to cut down on noise.
+"""
 # seperate events and prmo will not be grouped in this code
 
 # modify the loop to iterate over specific event types instead of just a True/False flag.
 
-
 # In STL The trend parameter must be an odd integer and should be larger than (1.5 * period) / (1 - 1.5/seasonal).
+# the default value for seasonal is 7 and thus trend is 101
+# it is god to use seasonal =13 and trend = 105 for weekly data with yearly seasonality (52 weeks) to capture more complex patterns.
 
 import pandas as pd
 import numpy as np
@@ -77,12 +79,6 @@ df_final = prepare_and_join_granular(sales_df, events_df, promos_df)
 
 print(df_final.head(5))
 
-
-
-import pandas as pd
-import numpy as np
-from statsmodels.tsa.seasonal import STL
-from scipy.stats import f
 
 def detect_outliers_n_segment(df, multiplier=3):
     """
@@ -279,4 +275,18 @@ How to use the Portfolio Stratification Report:
     The "Workhorses": High sku_count + High total_vol_segment + High forecast_score. This is where your business lives. Keep these automated.
     The "Troublemakers": High sku_count + High total_vol_segment + Low forecast_score. These are thousands of items that are all chaotic. This is where you need to check if your outlier thresholds (3 vs 5 MAD) are too sensitive.
     The "Critical Few": Low sku_count + High total_vol_segment. Even if there are only 50 SKUs, if they represent 20% of your volume, they deserve a custom manual review of their outliers every week.
+"""
+
+
+"""
+The F-Ratio Math
+F= Var of restricted model / Var of unrestricted model
+
+If the Restriction is "Wrong" (Signal is real): 
+    The Restricted variance (Numerator) will be much larger than the Unrestricted variance (Denominator). 
+    The F-statistic will be high, and you reject the Null Hypothesis. You conclude: "The Trend/Season is real."
+If the Restriction is "Right" (Signal is noise): 
+    Both variances will be roughly equal. 
+    The F-ratio will be near 1. You fail to reject the Null. You conclude: "This is just random noise."
+
 """
