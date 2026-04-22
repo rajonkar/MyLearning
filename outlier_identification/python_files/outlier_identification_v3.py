@@ -212,15 +212,16 @@ def get_final_analysis_summary(df):
 
 def get_portfolio_stratification_report(df):
     """
-    Summarises the portfolio by Forecast Score and Pattern Class.
-    Includes Volume per SKU to identify 'Heavy Hitters'.
-    Strategic Use of "Volume per SKU":
-        High Vol per SKU + Low Forecastability: These are your most dangerous items. They move a lot of money but are "chaotic." One bad forecast here results in massive lost sales or excess stock.
-            The "Heavy Hitters": A group with a high Volume per SKU means each item is a "blockbuster." 
-                                If these are also in the Low Forecastability class, 
-                                they are your highest risk items because every individual mistake is expensive.
-        Low Vol per SKU + High Outlier Count: These are your "noisy long-tail" items. They don't move much volume but they generate a lot of "false alarm" outlier alerts. You should likely ignore these or use a 5 MAD multiplier.
-        High Vol per SKU + High Normal Weeks: These are your most efficient items. They are high volume, organic, and stable.
+   Class A + Low Forecastability: These are your "Danger" SKUs. 
+                                They drive 80% of your business but are chaotic. 
+                                These deserve a manual review of every outlier.
+    
+    Class D + High Outlier Count: These are "Noise." Even if they have 10 outliers each, 
+                                    they only represent 1% of your volume. Use 5 MAD here to stop them 
+                                    from cluttering your dashboard.
+    
+    Volume per SKU in Class A: This will tell you if your 80% volume is driven by a few "Super-SKUs" 
+                                or a large group of high-performers.
     """
     # 1. Get SKU-level metrics (removing the time dimension)
     sku_level = df.groupby('series_id').agg({

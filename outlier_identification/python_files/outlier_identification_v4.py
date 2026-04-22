@@ -3,10 +3,13 @@
 
 
 """
-v3 v/s v4: added stiffness report to check if STL baseline is "chasing" spikes.
+v3 v/s v4: added stiffness report within the outlier_n_segment function to check if STL baseline is "chasing" spikes.
     Values < 0.3: Excellent. Your baseline is ignoring the "noise" and "shocks," leaving them for the residuals.
     Values 0.3 - 0.6: Acceptable. The baseline is following the data slightly, common in very high-growth items.
-    Values > 0.6: Warning. Your trend window (trend=105) might be too short for these specific SKUs. The baseline is "eating" your outliers.
+    Values > 0.6: Warning. Your trend window (trend=105) might be too short for these specific SKUs. 
+        The baseline is "eating" your outliers.
+
+    Second change: Modified the stratification report to include ABCD class by Volume
 """
 # logic explained below
 
@@ -242,17 +245,10 @@ def get_final_analysis_summary(df):
 
 def get_portfolio_stratification_report(df):
     """
-    Summarises the portfolio by Forecast Score and Pattern Class.
-    Includes Volume per SKU to identify 'Heavy Hitters'.
-    Strategic Use of "Volume per SKU":
-        High Vol per SKU + Low Forecastability: These are your most dangerous items. They move a lot of money but are "chaotic." One bad forecast here results in massive lost sales or excess stock.
-            The "Heavy Hitters": A group with a high Volume per SKU means each item is a "blockbuster." 
-                                If these are also in the Low Forecastability class, 
-                                they are your highest risk items because every individual mistake is expensive.
-        Low Vol per SKU + High Outlier Count: These are your "noisy long-tail" items. They don't move much volume but they generate a lot of "false alarm" outlier alerts. You should likely ignore these or use a 5 MAD multiplier.
-        High Vol per SKU + High Normal Weeks: These are your most efficient items. They are high volume, organic, and stable.
+    Summarises the portfolio by ABC Class, Forecast Score, and Pattern Class.
+    ABC logic: A=80%, B=95%, C=99%, D=100% of cumulative volume.
     """
-    # 1. Get SKU-level metrics (removing the time dimension)
+    # 1. Aggregate at SKU level
     sku_level = df.groupby('series_id').agg({
         'forecast_score': 'first',
         'class': 'first',
@@ -263,40 +259,42 @@ def get_portfolio_stratification_report(df):
 
     total_portfolio_vol = sku_level['last_1yr_sales_vol'].sum()
 
-    # 2. Group by Forecast Score and Class
-    report = sku_level.groupby(['forecast_score', 'class']).agg(
+    # 2. Assign ABC Classes based on Cumulative Volume
+    sku_level = sku_level.sort_values('last_1yr_sales_vol', ascending=False)
+    sku_level['cum_vol_pct'] = sku_level['last_1yr_sales_vol'].cumsum() / total_portfolio_vol
+    
+    def abc_classify(cum_pct):
+        if cum_pct <= 0.80: return 'A'
+        elif cum_pct <= 0.95: return 'B'
+        elif cum_pct <= 0.99: return 'C'
+        else: return 'D'
+    
+    sku_level['abc_class'] = sku_level['cum_vol_pct'].apply(abc_classify)
+
+    # 3. Group by ABC Class, Forecast Score, and Pattern Class
+    report = sku_level.groupby(['abc_class', 'forecast_score', 'class']).agg(
         sku_count=('series_id', 'count'),
         total_vol_segment=('last_1yr_sales_vol', 'sum'),
         avg_outlier_count=('is_outlier', 'mean'),
         avg_normal_weeks=('count_normal_weeks', 'mean')
     ).reset_index()
 
-    # 3. Add Proportion and Volume per SKU metrics
+    # 4. Add Proportions
     report['vol_pct_of_total'] = round((report['total_vol_segment'] / total_portfolio_vol) * 100, 2)
-    # The 'Heavy Hitter' metric
     report['avg_volume_per_sku'] = round(report['total_vol_segment'] / report['sku_count'], 2)
-
-    # 4. Clean up and Format
+    
+    # 5. Formatting
     report['avg_outlier_count'] = report['avg_outlier_count'].round(1)
     report['avg_normal_weeks'] = report['avg_normal_weeks'].round(1)
     
-    # Final column order
     final_cols = [
-        'forecast_score', 
-        'class', 
-        'sku_count',
-        'total_vol_segment',
-        'vol_pct_of_total', 
-        'avg_volume_per_sku', 
-        'avg_outlier_count', 
-        'avg_normal_weeks'
+        'abc_class', 'forecast_score', 'class', 
+        'sku_count', 'total_vol_segment',
+        'vol_pct_of_total', 'avg_volume_per_sku', 
+        'avg_outlier_count', 'avg_normal_weeks'
     ]
     
-    return report[final_cols].sort_values(['forecast_score', 'vol_pct_of_total'], ascending=[True, False])
-
-# Usage
-# stratification_report = get_portfolio_stratification_report(final_df)
-# print(stratification_report)
+    return report[final_cols].sort_values(['abc_class', 'vol_pct_of_total'], ascending=[True, False])
 
 
 # Execution
