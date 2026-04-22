@@ -25,7 +25,7 @@ print(os.getcwd())
 print(sys.executable) # proves the venv is used
 
 
-print(sys.prefix != sys.base_prefix)
+print(sys.prefix != sys.base_prefix,"--If Value is True venv is being used")
 
 
 
