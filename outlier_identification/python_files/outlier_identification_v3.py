@@ -360,5 +360,5 @@ def verify_stl_stiffness(df):
     return pd.DataFrame(diag_results).sort_values('stiffness_ratio', ascending=False)
 
 # Usage
-stiffness_report = verify_stl_stiffness(final_df)
-stiffness_report.to_csv("ver3/stl_stiffness_report.csv", index=False)
+# stiffness_report = verify_stl_stiffness(final_df)
+# stiffness_report.to_csv("ver3/stl_stiffness_report.csv", index=False)
