@@ -30,6 +30,12 @@ print(sys.executable) # proves the venv is used
 print(sys.prefix != sys.base_prefix,"--If Value is True venv is being used")
 
 
+# How to interpret the "Normal CV":
+# CV < 0.2: Highly predictable. These are your "Cash Cow" SKUs.
+# CV 0.2 – 0.5: Moderately predictable. You need a standard safety stock buffer.
+# CV > 0.5: Erratic/Lumpy. These are "Chaotic" SKUs. Even without promotions, the demand is very hard to pin down.
+
+
 
 
 sales_df= pd.read_csv('outlier_identification/sales.csv')
@@ -73,8 +79,10 @@ print(df_final.head(5))
 
 
 
-
-
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.seasonal import STL
+from scipy.stats import f
 
 def detect_outliers_n_segment(df, multiplier=3):
     """
@@ -93,7 +101,13 @@ def detect_outliers_n_segment(df, multiplier=3):
         group = group.sort_values('week_start').copy()
         n = len(group)
         
-        # 1. VOLUME & ZERO ANALYSIS (For Intermittent Classification)
+        # --- WEEK COUNTS & PERCENTAGES ---
+        count_normal = (group['promo_type'] == 'Normal').sum()
+        group['count_normal_weeks'] = count_normal
+        group['count_promo_weeks'] = n - count_normal
+        group['percent_normal_weeks'] = round((count_normal / n) * 100, 1)
+        
+        # 1. VOLUME & ZERO ANALYSIS
         last_year = group[group['week_start'] >= one_year_ago]
         group['last_1yr_sales_vol'] = last_year['sales'].sum()
         group['history_count'] = n
@@ -142,7 +156,7 @@ def detect_outliers_n_segment(df, multiplier=3):
         else:
             group['forecast_score'] = 'No Normal History'
 
-        # 4. BUCKETED OUTLIER DETECTION (MAD per promo_type)
+        # 4. BUCKETED OUTLIER DETECTION
         group['resid'] = group['sales'] - group['baseline']
         group['is_outlier'] = False
         
@@ -169,16 +183,77 @@ def detect_outliers_n_segment(df, multiplier=3):
     return pd.concat(all_results)
 
 def get_final_analysis_summary(df):
-    """Summarises the 8M rows into a scannable management report."""
-    summary = df[['series_id', 'class', 'forecast_score', 'last_1yr_sales_vol', 'history_count']].drop_duplicates()
+    """Summarises analysis and includes week-type counts and percentages."""
+    summary_cols = [
+        'series_id', 'class', 'forecast_score', 
+        'last_1yr_sales_vol', 'history_count', 
+        'count_normal_weeks', 'count_promo_weeks', 'percent_normal_weeks'
+    ]
+    summary = df[summary_cols].drop_duplicates()
+    
     outlier_counts = df.groupby('series_id')['is_outlier'].sum().reset_index(name='outlier_count')
     return summary.merge(outlier_counts, on='series_id')
 
 
-# Execution
-# final_df = detect_outliers_for_catalog(sales_df)
-final_df = detect_outliers_n_segment(df_final)
 
+def get_portfolio_stratification_report_v2(df):
+    """
+    Summarises the portfolio by Forecast Score and Pattern Class.
+    Includes Volume per SKU to identify 'Heavy Hitters'.
+    Strategic Use of "Volume per SKU":
+        High Vol per SKU + Low Forecastability: These are your most dangerous items. They move a lot of money but are "chaotic." One bad forecast here results in massive lost sales or excess stock.
+        Low Vol per SKU + High Outlier Count: These are your "noisy long-tail" items. They don't move much volume but they generate a lot of "false alarm" outlier alerts. You should likely ignore these or use a 5 MAD multiplier.
+        High Vol per SKU + High Normal Weeks: These are your most efficient items. They are high volume, organic, and stable.
+    """
+    # 1. Get SKU-level metrics (removing the time dimension)
+    sku_level = df.groupby('series_id').agg({
+        'forecast_score': 'first',
+        'class': 'first',
+        'last_1yr_sales_vol': 'first',
+        'is_outlier': 'sum',
+        'count_normal_weeks': 'first'
+    }).reset_index()
+
+    total_portfolio_vol = sku_level['last_1yr_sales_vol'].sum()
+
+    # 2. Group by Forecast Score and Class
+    report = sku_level.groupby(['forecast_score', 'class']).agg(
+        sku_count=('series_id', 'count'),
+        total_vol_segment=('last_1yr_sales_vol', 'sum'),
+        avg_outlier_count=('is_outlier', 'mean'),
+        avg_normal_weeks=('count_normal_weeks', 'mean')
+    ).reset_index()
+
+    # 3. Add Proportion and Volume per SKU metrics
+    report['vol_pct_of_total'] = round((report['total_vol_segment'] / total_portfolio_vol) * 100, 2)
+    # The 'Heavy Hitter' metric
+    report['volume_per_sku'] = round(report['total_vol_segment'] / report['sku_count'], 2)
+
+    # 4. Clean up and Format
+    report['avg_outlier_count'] = report['avg_outlier_count'].round(1)
+    report['avg_normal_weeks'] = report['avg_normal_weeks'].round(1)
+    
+    # Final column order
+    final_cols = [
+        'forecast_score', 
+        'class', 
+        'vol_pct_of_total', 
+        'volume_per_sku', 
+        'avg_outlier_count', 
+        'avg_normal_weeks',
+        'sku_count'
+    ]
+    
+    return report[final_cols].sort_values(['forecast_score', 'vol_pct_of_total'], ascending=[True, False])
+
+# Usage
+# stratification_report = get_portfolio_stratification_report(final_df)
+# print(stratification_report)
+
+
+# Execution
+final_df = detect_outliers_n_segment(df_final)
+df_report = get_final_analysis_summary(final_df)
 print(final_df.head(5))
 
 
@@ -187,5 +262,10 @@ filepath = Path("ver3/final_output.csv")
 # Create the folder(s) if they don't exist
 filepath.parent.mkdir(parents=True, exist_ok=True)
 final_df.to_csv(filepath, index=False)
+
+df_report.to_csv("ver3/summary_report.csv", index=False)
+
+stratification_report = get_portfolio_stratification_report(final_df)
+stratification_report.to_csv("ver3/stratification_report.csv", index=False)
 
 # print(final_df[['series_id', 'history_count', 'f_ratio_trend', 'class']].drop_duplicates())
