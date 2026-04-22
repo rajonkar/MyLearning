@@ -212,9 +212,21 @@ def get_final_analysis_summary(df):
 
 def get_portfolio_stratification_report(df):
     """
-    The "Workhorses": High sku_count + High total_vol_segment + High forecast_score. This is where your business lives. Keep these automated.
-    The "Troublemakers": High sku_count + High total_vol_segment + Low forecast_score. These are thousands of items that are all chaotic. This is where you need to check if your outlier thresholds (3 vs 5 MAD) are too sensitive.
-    The "Critical Few": Low sku_count + High total_vol_segment. Even if there are only 50 SKUs, if they represent 20% of your volume, they deserve a custom manual review of their outliers every week.
+    Summarises the portfolio by Forecast Score and Pattern Class.
+    Includes Volume per SKU to identify 'Heavy Hitters'.
+    Strategic Use of "Volume per SKU":
+        High Vol per SKU + Low Forecastability: These are your most dangerous items. They move a lot of money but are "chaotic." One bad forecast here results in massive lost sales or excess stock.
+            The "Heavy Hitters": A group with a high Volume per SKU means each item is a "blockbuster." 
+                                If these are also in the Low Forecastability class, 
+                                they are your highest risk items because every individual mistake is expensive.
+        Low Vol per SKU + High Outlier Count: These are your "noisy long-tail" items. 
+                                            They don't move much volume but they generate a lot of 
+                                            "false alarm" outlier alerts. You should likely ignore these or use a 5 MAD multiplier.
+        
+        High Vol per SKU + High Normal Weeks: These are your most efficient items. 
+                                              They are high volume, organic, and stable.
+   
+   Cr
     """
     # 1. Get SKU-level metrics (removing the time dimension)
     sku_level = df.groupby('series_id').agg({
