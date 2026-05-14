@@ -3,7 +3,7 @@
 """
 cv for forecast score cutoffs:
 CV < 0.2: Highly predictable. These are your "Cash Cow" SKUs.
-CV 0.2 – 0.5: Moderately predictable. You need a standard safety stock buffer.
+CV 0.2 - 0.5: Moderately predictable. You need a standard safety stock buffer.
 CV > 0.5: Erratic/Lumpy. These are "Chaotic" SKUs. Even without promotions, the demand is very hard to pin down.
 """
 
