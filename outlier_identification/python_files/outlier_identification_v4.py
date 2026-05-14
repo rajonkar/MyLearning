@@ -165,7 +165,7 @@ def detect_outliers_n_segment(df, multiplier=3):
                 
                 var_resid = res.resid.var()
                 if var_resid > 0:
-                    # Denominator is un restricnted model (resid only). Numerator is restricted model (resid + season) or (resid + trend)
+                    # Denominator is unrestricted model (resid only). Numerator is restricted model (resid + season) or (resid + trend)
                     f_s = (res.resid + res.seasonal).var() / var_resid
                     f_t = (res.resid + res.trend).var() / var_resid
                     
