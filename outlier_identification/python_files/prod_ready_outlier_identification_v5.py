@@ -511,5 +511,4 @@ def plot_stratification_heatmap(report_df, metric='vol_pct_of_total'):
 
 # Usage:
 strat_report = get_portfolio_stratification_report(final_df)
-print(strat_report.head(5))
 plot_stratification_heatmap(strat_report, metric='vol_pct_of_total')
