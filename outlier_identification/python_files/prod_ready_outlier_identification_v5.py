@@ -8,6 +8,7 @@ CV > 0.5: Erratic/Lumpy. These are "Chaotic" SKUs. Even without promotions, the 
 
 Intermittent definition:
         # fora sku to be classified intermittent it should have >16 weeks of zero sales in Last 1 year (>0.3*52)
+        # it is also checkd for seasonality and if true we classified as Regular Intermittent else just Intermittent
 """
 
 """
