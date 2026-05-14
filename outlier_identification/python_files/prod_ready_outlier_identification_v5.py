@@ -5,7 +5,9 @@
 """
 v4 /v5 change
 updated the functions to use dynamic column mapping. By default, it uses (dfu, period, sales), but you can pass a dictionary to col_map if  source data uses different headers."""
-
+            # my_map = {'product_series': 'dfu', 'week_start': 'period', 'sales': 'sales'}
+            # final_df = detect_outliers_n_segment(df_joined, rename_map=my_map)
+            # if cols are dfu|period|sales: final_df = detect_outliers_n_segment(df_joined)
 """
 v3 v/s v4: added stiffness report within the outlier_n_segment function to check if STL baseline is "chasing" spikes.
     Values < 0.3: Excellent. Your baseline is ignoring the "noise" and "shocks," leaving them for the residuals.
