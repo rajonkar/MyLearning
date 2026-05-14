@@ -1,0 +1,19 @@
+abc_class,forecast_score,class,dfu_count,total_vol_segment,vol_pct_of_total,avg_volume_per_dfu,avg_outlier_count,avg_normal_weeks
+A,High,Seasonal with Trend,44,303210.1391847738,39.37,6891.14,9.2,113.1
+A,Regular Intermittent,Regular Intermittent,31,152838.20791179533,19.84,4930.26,7.9,109.0
+A,Low,New SKU (< 1.25yr),9,49394.32613995164,6.41,5488.26,7.1,43.2
+A,Low,Non-Seasonal and No Trend,7,37389.51552353809,4.85,5341.36,6.4,70.0
+A,High,Seasonal without Trend,5,32357.70314369631,4.2,6471.54,9.4,77.0
+A,Medium,Seasonal without Trend,4,28679.00805696058,3.72,7169.75,15.2,85.8
+A,Medium,New SKU (< 1.25yr),2,11627.690934694132,1.51,5813.85,5.0,53.0
+B,Regular Intermittent,Regular Intermittent,17,61475.47141849869,7.98,3616.2,14.9,101.2
+B,Low,New SKU (< 1.25yr),9,30509.333352441292,3.96,3389.93,5.9,32.7
+B,High,Seasonal with Trend,3,10270.61342016434,1.33,3423.54,19.3,138.0
+B,High,Seasonal without Trend,2,7862.625143229743,1.02,3931.31,13.0,101.5
+B,Intermittent,Intermittent,1,3655.8143331429183,0.47,3655.81,11.0,76.0
+C,Regular Intermittent,Regular Intermittent,7,19833.866007971967,2.58,2833.41,8.0,94.6
+C,Low,New SKU (< 1.25yr),4,10182.697280330567,1.32,2545.67,9.0,34.0
+C,High,Seasonal with Trend,1,2996.6179092270145,0.39,2996.62,35.0,132.0
+D,Low,New SKU (< 1.25yr),2,3590.008416406725,0.47,1795.0,11.0,41.5
+D,Regular Intermittent,Regular Intermittent,1,2310.858004024747,0.3,2310.86,7.0,117.0
+D,Low,Seasonal without Trend,1,2052.803864960095,0.27,2052.8,34.0,142.0

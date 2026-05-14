@@ -3,6 +3,10 @@
 
 
 """
+v4 /v5 change
+updated the functions to use dynamic column mapping. By default, it uses (dfu, period, sales), but you can pass a dictionary to col_map if  source data uses different headers."""
+
+"""
 v3 v/s v4: added stiffness report within the outlier_n_segment function to check if STL baseline is "chasing" spikes.
     Values < 0.3: Excellent. Your baseline is ignoring the "noise" and "shocks," leaving them for the residuals.
     Values 0.3 - 0.6: Acceptable. The baseline is following the data slightly, common in very high-growth items.
@@ -90,10 +94,6 @@ df_final = prepare_and_join_granular(sales_df, events_df, promos_df)
 print(df_final.head(5))
 
 
-import pandas as pd
-import numpy as np
-from statsmodels.tsa.seasonal import STL
-from scipy.stats import f
 
 import pandas as pd
 import numpy as np
@@ -105,42 +105,68 @@ import numpy as np
 from statsmodels.tsa.seasonal import STL
 from scipy.stats import f
 
-def detect_outliers_n_segment(df, multiplier=3):
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.seasonal import STL
+from scipy.stats import f
+
+
+
+
+
+def detect_outliers_n_segment(df, multiplier=3, rename_map=None):
     """
+
     Final Master System:
     - Adaptive History (STL vs Rolling)
     - Granular Promo Buckets (BOGO, Overlaps)
     - F-Test Pattern Classification & F-Ratios
     - Stiffness Audit & Interpretation
     - 1-Year Volume & Forecastability Analysis
+    - Standardized names: dfu, period, sales.
+           - If rename_map is provided, it renames columns before processing.
+    Includes: Intermittency check, STL Stiffness, F-Ratios, and Bucketed Outliers
+
+    How to use
+        Option A: Columns are already named dfu, period, sales
+            # No map needed
+            final_df = detect_outliers_n_segment(df_joined)
+        Option B: Columns have different names
+            my_map = {'product_series': 'dfu', 'week_start': 'period', 'sales': 'sales'}
+            final_df = detect_outliers_n_segment(df_joined, rename_map=my_map)
     """
+    if rename_map:
+        df = df.rename(columns=rename_map)
     all_results = []
-    max_date = pd.to_datetime(df['week_start']).max()
+    # Use 'period' instead of 'week_start'
+    max_date = pd.to_datetime(df['period']).max()
     one_year_ago = max_date - pd.DateOffset(years=1)
     
-    for sid, group in df.groupby('series_id'):
-        group = group.sort_values('week_start').copy()
+    # Group by 'dfu'
+    for sid, group in df.groupby('dfu'):
+        group = group.sort_values('period').copy()
         n = len(group)
         
-        # --- WEEK COUNTS & PERCENTAGES ---
+        # --- PROMO METRICS ---
         count_normal = (group['promo_type'] == 'Normal').sum()
         group['count_normal_weeks'] = count_normal
         group['count_promo_weeks'] = n - count_normal
         group['percent_normal_weeks'] = round((count_normal / n) * 100, 1)
         
-        # 1. VOLUME & ZERO ANALYSIS
-        last_year = group[group['week_start'] >= one_year_ago]
+        # 1. VOLUME & INTERMITTENCY ANALYSIS
+        last_year = group[group['period'] >= one_year_ago]
         group['last_1yr_sales_vol'] = last_year['sales'].sum()
         group['history_count'] = n
         
+        # RESTORED: Intermittency logic
         zero_pct = (last_year['sales'] == 0).mean() if len(last_year) > 0 else 0
         is_intermittent = zero_pct > 0.30
 
-        # 2. BASELINE DECOMPOSITION & PATTERN CLASSIFICATION
+        # 2. BASELINE DECOMPOSITION
         group['f_ratio_trend'] = np.nan
         group['f_ratio_season'] = np.nan
         group['stiffness_ratio'] = np.nan 
-        group['stiffness_interpretation'] = "N/A" # Interpretation Column
+        group['stiffness_interpretation'] = "N/A"
 
         if n >= 65:
             try:
@@ -154,23 +180,20 @@ def detect_outliers_n_segment(df, multiplier=3):
                 if sales_std > 0:
                     ratio = round(group['baseline'].std() / sales_std, 3)
                     group['stiffness_ratio'] = ratio
-                    
-                    # Add Interpretation
-                    if ratio < 0.45:
-                        group['stiffness_interpretation'] = "Stiff (Ideal: Outliers forced to Resid)"
-                    elif ratio < 0.70:
-                        group['stiffness_interpretation'] = "Medium (Acceptable stability)"
-                    else:
-                        group['stiffness_interpretation'] = "Wavy (Warning: Baseline absorbing outliers)"
+                    if ratio < 0.45: group['stiffness_interpretation'] = "Stiff"
+                    elif ratio < 0.70: group['stiffness_interpretation'] = "Medium"
+                    else: group['stiffness_interpretation'] = "Wavy"
                 
+                # --- F-TEST PATTERN CLASSIFICATION ---
                 var_resid = res.resid.var()
                 if var_resid > 0:
-                    # Denominator is un restricnted model (resid only). Numerator is restricted model (resid + season) or (resid + trend)
+                # Denominator is un restricnted model (resid only).
+                #  Numerator is restricted model (resid + season) or (resid + trend)
+                #(res.resid + res.seasonal).var()$. This represents the error you would have if you ignored seasonality.
                     f_s = (res.resid + res.seasonal).var() / var_resid
+                    # here trend is removed in the numerator, so it represents the error if you ignored the trend component.- but seasonality present
                     f_t = (res.resid + res.trend).var() / var_resid
-                    
-                    group['f_ratio_season'] = round(f_s, 3)
-                    group['f_ratio_trend'] = round(f_t, 3)
+                    group['f_ratio_season'], group['f_ratio_trend'] = round(f_s, 3), round(f_t, 3)
                     
                     has_s = (1 - f.cdf(f_s, n-1, n-1)) < 0.01
                     has_t = (1 - f.cdf(f_t, n-1, n-1)) < 0.01
@@ -182,8 +205,6 @@ def detect_outliers_n_segment(df, multiplier=3):
                         elif has_s: group['class'] = 'Seasonal without Trend'
                         elif has_t: group['class'] = 'Non-Seasonal with Trend'
                         else: group['class'] = 'Non-Seasonal and No Trend'
-                else:
-                    group['class'] = 'Stable'
             except:
                 group['baseline'] = group['sales'].rolling(window=12, center=True, min_periods=1).median()
                 group['class'] = 'Fallback (Rolling)'
@@ -196,8 +217,7 @@ def detect_outliers_n_segment(df, multiplier=3):
         normal_mask = (group['promo_type'] == 'Normal')
         if normal_mask.any():
             norm_data = group[normal_mask]
-            curr_baseline = group.loc[normal_mask, 'baseline']
-            norm_resid = norm_data['sales'] - curr_baseline
+            norm_resid = norm_data['sales'] - group.loc[normal_mask, 'baseline']
             noise_cv = norm_resid.std() / (norm_data['sales'].mean() + 1e-9)
             group['noise_cv'] = round(noise_cv, 3)
             group['forecast_score'] = 'High' if noise_cv < 0.2 else 'Medium' if noise_cv < 0.5 else 'Low'
@@ -230,17 +250,22 @@ def detect_outliers_n_segment(df, multiplier=3):
 
 
 
+
+
+
+
 def get_final_analysis_summary(df):
     """Summarises analysis and includes week-type counts and percentages."""
     summary_cols = [
-        'series_id', 'class', 'forecast_score', 
+        'dfu', 'class', 'forecast_score', 
         'last_1yr_sales_vol', 'history_count', 
         'count_normal_weeks', 'count_promo_weeks', 'percent_normal_weeks'
     ]
     summary = df[summary_cols].drop_duplicates()
     
-    outlier_counts = df.groupby('series_id')['is_outlier'].sum().reset_index(name='outlier_count')
-    return summary.merge(outlier_counts, on='series_id')
+    outlier_counts = df.groupby('dfu')['is_outlier'].sum().reset_index(name='outlier_count')
+    return summary.merge(outlier_counts, on='dfu',how='left')
+
 
 
 
@@ -257,8 +282,14 @@ def get_portfolio_stratification_report(df):
     Volume per SKU in Class A: This will tell you if your 80% volume is driven by a few "Super-SKUs" 
                                 or a large group of high-performers.
     """
+    df = df.copy()
+    
+    inter_list = ['Intermittent', 'Regular Intermittent']
+    # Check if these classes exist and overwrite the score
+    df.loc[df['class'].isin(inter_list), 'forecast_score'] = df['class']
+    # --- END: THE OVERWRITE ---
     # 1. Aggregate at SKU level
-    sku_level = df.groupby('series_id').agg({
+    dfu_level = df.groupby('dfu').agg({
         'forecast_score': 'first',
         'class': 'first',
         'last_1yr_sales_vol': 'first',
@@ -266,11 +297,11 @@ def get_portfolio_stratification_report(df):
         'count_normal_weeks': 'first'
     }).reset_index()
 
-    total_portfolio_vol = sku_level['last_1yr_sales_vol'].sum()
+    total_portfolio_vol = dfu_level['last_1yr_sales_vol'].sum()
 
     # 2. Assign ABC Classes based on Cumulative Volume
-    sku_level = sku_level.sort_values('last_1yr_sales_vol', ascending=False)
-    sku_level['cum_vol_pct'] = sku_level['last_1yr_sales_vol'].cumsum() / total_portfolio_vol
+    dfu_level = dfu_level.sort_values('last_1yr_sales_vol', ascending=False)
+    dfu_level['cum_vol_pct'] = dfu_level['last_1yr_sales_vol'].cumsum() / total_portfolio_vol
     
     def abc_classify(cum_pct):
         if cum_pct <= 0.80: return 'A'
@@ -278,11 +309,11 @@ def get_portfolio_stratification_report(df):
         elif cum_pct <= 0.99: return 'C'
         else: return 'D'
     
-    sku_level['abc_class'] = sku_level['cum_vol_pct'].apply(abc_classify)
+    dfu_level['abc_class'] = dfu_level['cum_vol_pct'].apply(abc_classify)
 
     # 3. Group by ABC Class, Forecast Score, and Pattern Class
-    report = sku_level.groupby(['abc_class', 'forecast_score', 'class']).agg(
-        sku_count=('series_id', 'count'),
+    report = dfu_level.groupby(['abc_class', 'forecast_score', 'class']).agg(
+        dfu_count=('dfu', 'count'),
         total_vol_segment=('last_1yr_sales_vol', 'sum'),
         avg_outlier_count=('is_outlier', 'mean'),
         avg_normal_weeks=('count_normal_weeks', 'mean')
@@ -290,7 +321,7 @@ def get_portfolio_stratification_report(df):
 
     # 4. Add Proportions
     report['vol_pct_of_total'] = round((report['total_vol_segment'] / total_portfolio_vol) * 100, 2)
-    report['avg_volume_per_sku'] = round(report['total_vol_segment'] / report['sku_count'], 2)
+    report['avg_volume_per_dfu'] = round(report['total_vol_segment'] / report['dfu_count'], 2)
     
     # 5. Formatting
     report['avg_outlier_count'] = report['avg_outlier_count'].round(1)
@@ -298,8 +329,8 @@ def get_portfolio_stratification_report(df):
     
     final_cols = [
         'abc_class', 'forecast_score', 'class', 
-        'sku_count', 'total_vol_segment',
-        'vol_pct_of_total', 'avg_volume_per_sku', 
+        'dfu_count', 'total_vol_segment',
+        'vol_pct_of_total', 'avg_volume_per_dfu', 
         'avg_outlier_count', 'avg_normal_weeks'
     ]
     
@@ -307,23 +338,24 @@ def get_portfolio_stratification_report(df):
 
 
 # Execution
-final_df = detect_outliers_n_segment(df_final)
+my_map = {'series_id': 'dfu', 'week_start': 'period', 'sales': 'sales'} # the function expects a certains col name dfu|sales|period if differnt col name change the col_name 
+final_df = detect_outliers_n_segment(df_final,rename_map=my_map)
 df_report = get_final_analysis_summary(final_df)
 print(final_df.head(5))
 
 
 # Define your file path
-filepath = Path("ver4/final_output.csv")
+filepath = Path("ver5/final_output.csv")
 # Create the folder(s) if they don't exist
 filepath.parent.mkdir(parents=True, exist_ok=True)
 final_df.to_csv(filepath, index=False)
 
-df_report.to_csv("ver4/summary_report.csv", index=False)
+df_report.to_csv("ver5/summary_report.csv", index=False)
 
 stratification_report = get_portfolio_stratification_report(final_df)
-stratification_report.to_csv("ver4/stratification_report.csv", index=False)
+stratification_report.to_csv("ver5/stratification_report_1.csv", index=False)
 
-# print(final_df[['series_id', 'history_count', 'f_ratio_trend', 'class']].drop_duplicates())
+# print(final_df[['dfu', 'history_count', 'f_ratio_trend', 'class']].drop_duplicates())
 
 """
 How to use the Portfolio Stratification Report:
@@ -368,7 +400,7 @@ def verify_stl_stiffness(df):
     # We only run this for SKUs that used STL (history >= 65 weeks)
     stl_skus = df[df['history_count'] >= 65]
     
-    for sid, group in stl_skus.groupby('series_id'):
+    for sid, group in stl_skus.groupby('dfu'):
         # 1. Calculate Standard Deviation (Volatility)
         sales_vol = group['sales'].std()
         base_vol = group['baseline'].std()
@@ -386,7 +418,7 @@ def verify_stl_stiffness(df):
             verdict = "Wavy (Warning: Baseline is chasing spikes)"
             
         diag_results.append({
-            'series_id': sid,
+            'dfu': sid,
             'stiffness_ratio': round(stiffness_ratio, 3),
             'verdict': verdict,
             'sales_std': round(sales_vol, 2),
@@ -397,4 +429,87 @@ def verify_stl_stiffness(df):
 
 # Usage
 stiffness_report = verify_stl_stiffness(final_df)
-stiffness_report.to_csv("ver3/stl_stiffness_report.csv", index=False)
+stiffness_report.to_csv("ver5/stl_stiffness_report.csv", index=False)
+
+
+
+# plotting
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+
+
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# def plot_stratification_heatmap(report_df, metric='vol_pct_of_total'):
+#     """
+#     Generates a heatmap from the stratification report.
+#     metric: 'vol_pct_of_total', 'sku_count', or 'avg_outlier_count'
+#     """
+#     # 1. Pivot the data to create a matrix
+#     # We aggregate by ABC and Forecast Score, summing the metric
+#     pivot_df = report_df.pivot_table(
+#         index='abc_class', 
+#         columns='forecast_score', 
+#         values=metric, 
+#         aggfunc='sum'
+#     ).fillna(0)
+    
+#     # 2. Ensure logical ordering
+#     score_order = ['High', 'Medium', 'Low']
+#     pivot_df = pivot_df[[c for c in score_order if c in pivot_df.columns]]
+
+#     # 3. Plotting
+#     plt.figure(figsize=(10, 6))
+#     sns.heatmap(pivot_df, annot=True, cmap='YlGnBu', fmt='.1f' if 'pct' in metric else 'g')
+    
+#     plt.title(f'Portfolio Concentration: {metric.replace("_", " ").title()}')
+#     plt.xlabel('Forecastability (Normal CV)')
+#     plt.ylabel('ABC Volume Class')
+#     plt.show()
+
+# # Usage:
+# strat_report = get_portfolio_stratification_report(final_df)
+# plot_stratification_heatmap(strat_report, metric='vol_pct_of_total')
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+def plot_stratification_heatmap(report_df, metric='vol_pct_of_total'):
+    """
+    Generates a heatmap from the stratification report.
+    metric: 'vol_pct_of_total', 'sku_count', or 'avg_outlier_count'
+    """
+    # 1. Pivot the data to create a matrix
+    # We aggregate by ABC and Forecast Score, summing the metric
+    pivot_df = report_df.pivot_table(
+        index='abc_class', 
+        columns='forecast_score', 
+        values=metric, 
+        aggfunc='sum'
+    ).fillna(0)
+    
+    # 2. Ensure logical ordering
+    score_order = ['High', 'Medium', 'Low',"Regular Intermittent", "Intermittent"]
+    pivot_df = pivot_df[[c for c in score_order if c in pivot_df.columns]]
+
+    # 3. Plotting
+    plt.figure(figsize=(10, 6))
+    sns.heatmap(pivot_df, annot=True, cmap='YlGnBu', fmt='.1f' if 'pct' in metric else 'g')
+    
+    plt.title(f'Portfolio Concentration: {metric.replace("_", " ").title()}')
+    plt.xlabel('Forecastability (Normal CV)')
+    plt.ylabel('ABC Volume Class')
+    plt.show()
+
+# Usage:
+strat_report = get_portfolio_stratification_report(final_df)
+print(strat_report.head(5))
+plot_stratification_heatmap(strat_report, metric='vol_pct_of_total')
