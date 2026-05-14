@@ -9,10 +9,15 @@ CV > 0.5: Erratic/Lumpy. These are "Chaotic" SKUs. Even without promotions, the 
 
 """
 v4 /v5 change
-updated the functions to use dynamic column mapping. By default, it uses (dfu, period, sales), but you can pass a dictionary to col_map if  source data uses different headers."""
-            # my_map = {'product_series': 'dfu', 'week_start': 'period', 'sales': 'sales'}
-            # final_df = detect_outliers_n_segment(df_joined, rename_map=my_map)
-            # if cols are dfu|period|sales: final_df = detect_outliers_n_segment(df_joined)
+updated the functions to use dynamic column mapping. 
+    By default, it uses (dfu, period, sales), 
+    Option A: 
+            source data uses different headers:
+            my_map = {'product_series': 'dfu', 'week_start': 'period', 'sales': 'sales'}
+            final_df = detect_outliers_n_segment(df_joined, rename_map=my_map)
+        Option B: 
+                if cols are dfu|period|sales: final_df = detect_outliers_n_segment(df_joined)
+"""
 """
 v3 v/s v4: added stiffness report within the outlier_n_segment function to check if STL baseline is "chasing" spikes.
     Values < 0.3: Excellent. Your baseline is ignoring the "noise" and "shocks," leaving them for the residuals.
@@ -97,9 +102,9 @@ def prepare_and_join_granular(sales_df, events_df, promos_df):
 
 # Run the join
 df_final = prepare_and_join_granular(sales_df, events_df, promos_df)
-
+print("************************ the below is input to forecast segmentation and outlier detection:**************************")
 print(df_final.head(5))
-
+print("************************ the above is input to forecast segmentation and outlier detection:**************************")
 
 
 import pandas as pd
