@@ -189,7 +189,7 @@ def detect_outliers_n_segment(df, multiplier=3, rename_map=None):
                 # --- F-TEST PATTERN CLASSIFICATION ---
                 var_resid = res.resid.var()
                 if var_resid > 0:
-                # Denominator is un restricnted model (resid only).
+                # Denominator is unrestricnted model (resid only).
                 #  Numerator is restricted model (resid + season) or (resid + trend)
                 #(res.resid + res.seasonal).var()$. This represents the error you would have if you ignored seasonality.
                     f_s = (res.resid + res.seasonal).var() / var_resid
