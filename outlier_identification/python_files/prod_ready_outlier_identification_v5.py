@@ -47,7 +47,8 @@ import sys
 from statsmodels.tsa.seasonal import STL
 from pathlib import Path
 from scipy.stats import f
-
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 
@@ -105,24 +106,6 @@ df_final = prepare_and_join_granular(sales_df, events_df, promos_df)
 print("************************ the below is input to forecast segmentation and outlier detection:**************************")
 print(df_final.head(5))
 print("************************ the above is input to forecast segmentation and outlier detection:**************************")
-
-
-import pandas as pd
-import numpy as np
-from statsmodels.tsa.seasonal import STL
-from scipy.stats import f
-
-import pandas as pd
-import numpy as np
-from statsmodels.tsa.seasonal import STL
-from scipy.stats import f
-
-import pandas as pd
-import numpy as np
-from statsmodels.tsa.seasonal import STL
-from scipy.stats import f
-
-
 
 
 
@@ -447,52 +430,7 @@ stiffness_report.to_csv("ver5/stl_stiffness_report.csv", index=False)
 
 # plotting
 
-import seaborn as sns
-import matplotlib.pyplot as plt
 
-
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-
-
-
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-# def plot_stratification_heatmap(report_df, metric='vol_pct_of_total'):
-#     """
-#     Generates a heatmap from the stratification report.
-#     metric: 'vol_pct_of_total', 'sku_count', or 'avg_outlier_count'
-#     """
-#     # 1. Pivot the data to create a matrix
-#     # We aggregate by ABC and Forecast Score, summing the metric
-#     pivot_df = report_df.pivot_table(
-#         index='abc_class', 
-#         columns='forecast_score', 
-#         values=metric, 
-#         aggfunc='sum'
-#     ).fillna(0)
-    
-#     # 2. Ensure logical ordering
-#     score_order = ['High', 'Medium', 'Low']
-#     pivot_df = pivot_df[[c for c in score_order if c in pivot_df.columns]]
-
-#     # 3. Plotting
-#     plt.figure(figsize=(10, 6))
-#     sns.heatmap(pivot_df, annot=True, cmap='YlGnBu', fmt='.1f' if 'pct' in metric else 'g')
-    
-#     plt.title(f'Portfolio Concentration: {metric.replace("_", " ").title()}')
-#     plt.xlabel('Forecastability (Normal CV)')
-#     plt.ylabel('ABC Volume Class')
-#     plt.show()
-
-# # Usage:
-# strat_report = get_portfolio_stratification_report(final_df)
-# plot_stratification_heatmap(strat_report, metric='vol_pct_of_total')
-
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 def plot_stratification_heatmap(report_df, metric='vol_pct_of_total'):
     """
