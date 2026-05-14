@@ -113,6 +113,8 @@ def detect_outliers_n_segment(df, multiplier=3):
         group['last_1yr_sales_vol'] = last_year['sales'].sum()
         group['history_count'] = n
         
+        #if a product had 52 weeks of history and 26 of them were zero, the zero_pct would be 0.50 (50%).
+        # for intermittent demand the cut off is 15.6 weeks of zero sales
         zero_pct = (last_year['sales'] == 0).mean() if len(last_year) > 0 else 0
         is_intermittent = zero_pct > 0.30
 
