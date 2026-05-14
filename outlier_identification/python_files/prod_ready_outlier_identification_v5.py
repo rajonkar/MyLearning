@@ -7,7 +7,7 @@ CV 0.2 - 0.5: Moderately predictable. You need a standard safety stock buffer.
 CV > 0.5: Erratic/Lumpy. These are "Chaotic" SKUs. Even without promotions, the demand is very hard to pin down.
 
 Intermittent definition:
-        # fora sku to be classified it should have >15.6 weeks of zero sales in Last 1 year (>0.3*52)
+        # fora sku to be classified intermittent it should have >16 weeks of zero sales in Last 1 year (>0.3*52)
 """
 
 """
