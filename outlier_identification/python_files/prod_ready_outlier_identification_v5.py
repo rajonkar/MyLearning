@@ -13,7 +13,7 @@ Intermittent definition:
 
 """
 v4 /v5 change
-updated the functions to use dynamic column mapping. 
+updated the function detect_outliers_n_segment to use dynamic column mapping. 
     By default, it uses (dfu, period, sales), 
     Option A: 
             source data uses different headers:
