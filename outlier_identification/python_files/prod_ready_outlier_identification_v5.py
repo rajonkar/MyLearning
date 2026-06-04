@@ -43,7 +43,7 @@ Audit: See if the outlier detection needs a 5 MAD multiplier to cut down on nois
 # In STL The trend parameter must be an odd integer and should be larger than (1.5 * period) / (1 - 1.5/seasonal).
 # the default value for seasonal is 7 and thus trend is 101
 # it is good to use seasonal =13 and trend = 105 for weekly data with yearly seasonality (52 weeks) to capture more complex patterns.
-
+import sys
 import os
 print(os.getcwd())
 os.chdir('/Users/rajonkar/Documents/MyLearning/')
