@@ -115,6 +115,9 @@ def prepare_and_join_granular(sales_df, events_df, promos_df):
 df_final = prepare_and_join_granular(sales_df, events_df, promos_df)
 print("************************ the below is input to forecast segmentation and outlier detection:**************************")
 print(df_final.head(5))
+print(df_final['promo_type'].unique())
+# the df_final has cols: series_id, week_start, sales, week_end, promo_type.
+# promo_type has values like Normal, BOGO, Event1, Event2, BOGO + Event1 etc. 
 print("************************ the above is input to forecast segmentation and outlier detection:**************************")
 
 
