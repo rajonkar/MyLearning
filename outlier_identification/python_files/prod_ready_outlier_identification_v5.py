@@ -116,6 +116,13 @@ df_final = prepare_and_join_granular(sales_df, events_df, promos_df)
 print("************************ the below is input to forecast segmentation and outlier detection:**************************")
 print(df_final.head(5))
 print(df_final['promo_type'].unique())
+# sample df_final for input to the function detect_outliers_n_segment:
+                #   week_start       sales    series_id   week_end promo_type
+                #   2022-07-11  104.034385  Product_001 2022-07-17     Normal
+                #   2022-07-18  101.019906  Product_001 2022-07-24     Normal
+                #   2022-07-25   99.902732  Product_001 2022-07-31     Normal
+                #   2022-08-01   95.770293  Product_001 2022-08-07     Normal
+                #   2022-08-08   89.410111  Product_001 2022-08-14     Normal
 # the df_final has cols: series_id, week_start, sales, week_end, promo_type.
 # promo_type has values like Normal, BOGO, Event1, Event2, BOGO + Event1 etc. 
 # detect_outliers_n_segment function expects a certains col name dfu|sales|period if differnt col name change the col_name  plus one more column with name promo__type 
