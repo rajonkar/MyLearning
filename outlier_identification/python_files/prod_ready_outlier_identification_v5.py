@@ -125,7 +125,7 @@ print(df_final['promo_type'].unique())
                 #   2022-08-08   89.410111  Product_001 2022-08-14     Normal
 # the df_final has cols: series_id, week_start, sales, week_end, promo_type.
 # promo_type has values like Normal, BOGO, Event1, Event2, BOGO + Event1 etc. 
-# detect_outliers_n_segment function expects a certains col name dfu|sales|period if differnt col name change the col_name  plus one more column with name promo__type 
+# detect_outliers_n_segment function expects a certains col name dfu|sales|period ... if differnt col name change the col_name  plus one more column with name promo__type 
 # note that promo_type column name column is CRITICAL other cols can be renamed using the rename_map argument in the function detect_outliers_n_segment
 print("************************ the above is input to forecast segmentation and outlier detection:**************************")
 
