@@ -118,6 +118,8 @@ print(df_final.head(5))
 print(df_final['promo_type'].unique())
 # the df_final has cols: series_id, week_start, sales, week_end, promo_type.
 # promo_type has values like Normal, BOGO, Event1, Event2, BOGO + Event1 etc. 
+# detect_outliers_n_segment function expects a certains col name dfu|sales|period if differnt col name change the col_name  plus one more column with name promo__type 
+# note that promo_type column name column is critical other cols can be renamed using the rename_map argument in the function detect_outliers_n_segment
 print("************************ the above is input to forecast segmentation and outlier detection:**************************")
 
 
@@ -346,7 +348,7 @@ def get_portfolio_stratification_report(df):
 
 
 # Execution
-my_map = {'series_id': 'dfu', 'week_start': 'period', 'sales': 'sales'} # the function expects a certains col name dfu|sales|period if differnt col name change the col_name 
+my_map = {'series_id': 'dfu', 'week_start': 'period', 'sales': 'sales'} # the function expects a certains col name dfu|sales|period if differnt col name change the col_name  plus one more column with name promo__type
 final_df = detect_outliers_n_segment(df_final,rename_map=my_map)
 df_report = get_final_analysis_summary(final_df)
 print(final_df.head(5))
