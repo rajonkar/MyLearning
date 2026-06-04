@@ -44,6 +44,13 @@ Audit: See if the outlier detection needs a 5 MAD multiplier to cut down on nois
 # the default value for seasonal is 7 and thus trend is 101
 # it is good to use seasonal =13 and trend = 105 for weekly data with yearly seasonality (52 weeks) to capture more complex patterns.
 
+import os
+print(os.getcwd())
+os.chdir('/Users/rajonkar/Documents/MyLearning/')
+#----------------venv verification
+print(sys.executable) # proves the venv is used
+print(sys.prefix != sys.base_prefix,"--If Value is True venv is being used")
+
 import pandas as pd
 import numpy as np
 import os
@@ -56,11 +63,7 @@ import matplotlib.pyplot as plt
 
 
 
-print(os.getcwd())
-os.chdir('/Users/rajonkar/Documents/MyLearning/')
-#----------------venv verification
-print(sys.executable) # proves the venv is used
-print(sys.prefix != sys.base_prefix,"--If Value is True venv is being used")
+
 
 
 # How to interpret the "Normal CV":
